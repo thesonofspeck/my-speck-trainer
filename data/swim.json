@@ -1,0 +1,6 @@
+{
+  "foundation": { "dur": "20-25 min", "desc": "Easy laps, any stroke. Focus on breathing rhythm.", "goal": "Get comfortable" },
+  "build": { "dur": "25-30 min", "desc": "2 laps easy / 1 lap hard, or 4×50m w/ 20 sec rest.", "goal": "Build swim fitness" },
+  "peak": { "dur": "30-35 min", "desc": "Pyramid: 1-2-3-4-3-2-1 laps hard w/ 15-20 sec rest.", "goal": "Real cardio work" },
+  "raceShape": { "dur": "25-30 min", "desc": "Easy-moderate. Freestyle + backstroke alternating.", "goal": "Recovery & mobility" }
+}

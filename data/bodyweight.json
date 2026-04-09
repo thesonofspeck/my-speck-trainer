@@ -1,0 +1,53 @@
+{
+  "foundation": {
+    "label": "Foundation circuit — 2 rounds",
+    "exercises": [
+      "Push-ups: 12 reps",
+      "Bodyweight squats: 15 reps",
+      "Plank: 30 sec hold",
+      "Glute bridges: 12 reps",
+      "Dead bugs: 10 per side",
+      "Superman holds: 15 sec hold"
+    ],
+    "note": "All 6 exercises back-to-back, rest 60-90 sec, repeat once more. ~20 min."
+  },
+  "build": {
+    "label": "Build circuit — 3 rounds",
+    "exercises": [
+      "Push-ups: 15 reps (or diamond: 10)",
+      "Bulgarian split squats: 10/leg",
+      "Plank: 45 sec hold",
+      "Single-leg glute bridge: 10/leg",
+      "Bicycle crunches: 15/side",
+      "Pike push-ups: 8 reps",
+      "Lateral lunges: 10/side"
+    ],
+    "note": "All 7 exercises back-to-back, rest 60 sec, repeat 2 more times. ~25 min."
+  },
+  "peak": {
+    "label": "Peak circuit — 3 rounds",
+    "exercises": [
+      "Decline push-ups: 15 reps",
+      "Pistol squat progressions: 6/leg",
+      "Plank w/ shoulder taps: 60 sec",
+      "Single-leg glute bridge: 12/leg",
+      "Hanging leg raises (or lying): 12 reps",
+      "Pike push-ups: 12 reps",
+      "Jump squats: 10 reps",
+      "Side plank: 30 sec/side"
+    ],
+    "note": "All 8 exercises back-to-back, rest 60 sec, repeat 2 more times. ~30 min."
+  },
+  "raceShape": {
+    "label": "Race Shape circuit — 2 rounds",
+    "exercises": [
+      "Push-up variation: 15 reps",
+      "Jump squats: 8 reps",
+      "Plank w/ shoulder taps: 45 sec",
+      "Single-leg RDL: 8/leg",
+      "V-ups: 12 reps",
+      "Burpees: 6 reps"
+    ],
+    "note": "All 6 back-to-back, rest 60-90 sec, repeat once more. ~20 min."
+  }
+}

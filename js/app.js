@@ -3,82 +3,40 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 const fmt = d => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
 
-const PHASES = [
-  { name:"Foundation", weeks:[1,2,3,4], color:"#2D6A4F" },
-  { name:"Build", weeks:[5,6,7,8], color:"#D4A017" },
-  { name:"Peak", weeks:[9,10,11,12], color:"#C1121F" },
-  { name:"Race Shape", weeks:[13,14,15,16,17], color:"#1D3557" },
-];
+let PHASES, ICONS, BW, BW_BY_PHASE, SWIM, SWIM_BY_PHASE, WATCH, HR_ZONES, WEEK_PARAMS;
 const getPhase = w => PHASES.find(p => p.weeks.includes(w));
-const getPhaseIndex = w => w<=4?0:w<=8?1:w<=12?2:3;
-
-const ICONS = { EASY:"🟢", VO2MAX:"🔴", TEMPO:"🟠", PROGRESS:"🟣", SWIM:"🏊", PLAY:"🏐", REST:"😴", LONG:"🟤", CROSS:"🔵" };
-
-const BW = {
-  foundation: { label:"Foundation circuit — 2 rounds", exercises:["Push-ups: 12 reps","Bodyweight squats: 15 reps","Plank: 30 sec hold","Glute bridges: 12 reps","Dead bugs: 10 per side","Superman holds: 15 sec hold"], note:"All 6 exercises back-to-back, rest 60-90 sec, repeat once more. ~20 min." },
-  build: { label:"Build circuit — 3 rounds", exercises:["Push-ups: 15 reps (or diamond: 10)","Bulgarian split squats: 10/leg","Plank: 45 sec hold","Single-leg glute bridge: 10/leg","Bicycle crunches: 15/side","Pike push-ups: 8 reps","Lateral lunges: 10/side"], note:"All 7 exercises back-to-back, rest 60 sec, repeat 2 more times. ~25 min." },
-  peak: { label:"Peak circuit — 3 rounds", exercises:["Decline push-ups: 15 reps","Pistol squat progressions: 6/leg","Plank w/ shoulder taps: 60 sec","Single-leg glute bridge: 12/leg","Hanging leg raises (or lying): 12 reps","Pike push-ups: 12 reps","Jump squats: 10 reps","Side plank: 30 sec/side"], note:"All 8 exercises back-to-back, rest 60 sec, repeat 2 more times. ~30 min." },
-  raceShape: { label:"Race Shape circuit — 2 rounds", exercises:["Push-up variation: 15 reps","Jump squats: 8 reps","Plank w/ shoulder taps: 45 sec","Single-leg RDL: 8/leg","V-ups: 12 reps","Burpees: 6 reps"], note:"All 6 back-to-back, rest 60-90 sec, repeat once more. ~20 min." },
-};
-const BW_BY_PHASE = [BW.foundation, BW.build, BW.peak, BW.raceShape];
+const getPhaseIndex = w => PHASES.findIndex(p => p.weeks.includes(w));
 const getBW = w => BW_BY_PHASE[getPhaseIndex(w)];
-
-const SWIM = {
-  foundation: { dur:"20-25 min", desc:"Easy laps, any stroke. Focus on breathing rhythm.", goal:"Get comfortable" },
-  build: { dur:"25-30 min", desc:"2 laps easy / 1 lap hard, or 4×50m w/ 20 sec rest.", goal:"Build swim fitness" },
-  peak: { dur:"30-35 min", desc:"Pyramid: 1-2-3-4-3-2-1 laps hard w/ 15-20 sec rest.", goal:"Real cardio work" },
-  raceShape: { dur:"25-30 min", desc:"Easy-moderate. Freestyle + backstroke alternating.", goal:"Recovery & mobility" },
-};
-const SWIM_BY_PHASE = [SWIM.foundation, SWIM.build, SWIM.peak, SWIM.raceShape];
 const getSwim = w => SWIM_BY_PHASE[getPhaseIndex(w)];
 
-const WATCH = [
-  { phase:"Weeks 1-4: Foundation", color:"#2D6A4F", items:[
-    {n:"Easy 20",s:"WU 5:00 → Run 20:00 (Z2) → CD 3:00"},{n:"Easy 25",s:"WU 5:00 → Run 25:00 (Z2) → CD 3:00"},
-    {n:"VO2 5×(4+1)",s:"WU 5:00 → ×5: [Run 4:00 + Recover 1:00] → CD 3:00"},
-    {n:"VO2 5×(4+1:30)",s:"WU 5:00 → ×5: [Run 4:00 + Recover 1:30] → CD 3:00"},
-    {n:"Tempo 15",s:"WU 5:00 → Run 15:00 (Z3) → CD 3:00"},{n:"Tempo 20",s:"WU 5:00 → Run 20:00 (Z3) → CD 3:00"},
-  ]},
-  { phase:"Weeks 5-8: Build", color:"#D4A017", items:[
-    {n:"Easy 30",s:"WU 5:00 → Run 30:00 (Z2) → CD 3:00"},
-    {n:"VO2 6×(4+1:30)",s:"WU 5:00 → ×6: [Run 4:00 + Recover 1:30] → CD 3:00"},
-    {n:"VO2 6×(4+1)",s:"WU 5:00 → ×6: [Run 4:00 + Recover 1:00] → CD 3:00"},
-    {n:"Tempo 2×10",s:"WU 5:00 → Run 10:00 (Z3) → Easy 2:00 → Run 10:00 (Z3) → CD 3:00"},
-    {n:"Tempo 25",s:"WU 5:00 → Run 25:00 (Z3) → CD 3:00"},
-    {n:"Long 35",s:"WU 5:00 → Run 35:00 (Z2) → CD 5:00"},{n:"Long 40",s:"WU 5:00 → Run 40:00 (Z2) → CD 5:00"},
-    {n:"Progression v1",s:"WU 5:00 → Z2 10:00 → Z3 10:00 → Z4 5:00 → CD 3:00"},
-  ]},
-  { phase:"Weeks 9-12: Peak", color:"#C1121F", items:[
-    {n:"Easy 35",s:"WU 5:00 → Run 35:00 (Z2) → CD 3:00"},
-    {n:"VO2 7×(4+1)",s:"WU 5:00 → ×7: [Run 4:00 + Recover 1:00] → CD 3:00"},
-    {n:"Tempo 2×12",s:"WU 5:00 → Run 12:00 (Z3) → Easy 2:00 → Run 12:00 (Z3) → CD 3:00"},
-    {n:"Tempo 30",s:"WU 5:00 → Run 30:00 (Z3) → CD 3:00"},
-    {n:"Long 45",s:"WU 5:00 → Run 45:00 (Z2) → CD 5:00"},{n:"Long 50",s:"WU 5:00 → Run 50:00 (Z2) → CD 5:00"},
-    {n:"Progression v2",s:"WU 5:00 → Z2 12:00 → Z3 10:00 → Z4 8:00 → CD 3:00"},
-  ]},
-  { phase:"Weeks 13-17: Race Shape", color:"#1D3557", items:[
-    {n:"VO2 6×(3+1)",s:"WU 5:00 → ×6: [Run 3:00 + Recover 1:00] → CD 3:00"},
-    {n:"VO2 8×(2+1)",s:"WU 5:00 → ×8: [Run 2:00 + Recover 1:00] → CD 3:00"},
-    {n:"VO2 4×(3+1:30)",s:"WU 5:00 → ×4: [Run 3:00 + Recover 1:30] → CD 3:00"},
-    {n:"Long 35",s:"WU 5:00 → Run 35:00 (Z2) → CD 5:00"},
-  ]},
-];
+async function fetchJsonData() {
+  const [phasesData, bwData, swimData, watchData, workoutsData] = await Promise.all([
+    fetch('data/phases.json').then(r => r.json()),
+    fetch('data/bodyweight.json').then(r => r.json()),
+    fetch('data/swim.json').then(r => r.json()),
+    fetch('data/watch.json').then(r => r.json()),
+    fetch('data/workouts.json').then(r => r.json()),
+  ]);
+  PHASES = phasesData.phases;
+  ICONS = phasesData.icons;
+  BW = bwData;
+  BW_BY_PHASE = [BW.foundation, BW.build, BW.peak, BW.raceShape];
+  SWIM = swimData;
+  SWIM_BY_PHASE = [SWIM.foundation, SWIM.build, SWIM.peak, SWIM.raceShape];
+  WATCH = watchData;
+  HR_ZONES = workoutsData.hrZones;
+  WEEK_PARAMS = workoutsData.weekParams;
+}
 
 function buildWeek(w) {
   const phase = getPhase(w);
   const bw = getBW(w);
   const swim = getSwim(w);
-  let easyDur,tempoSpec,vo2Spec,longRunDur;
-
-  if(w<=2){easyDur=20;tempoSpec={dur:15};vo2Spec={reps:5,work:4,rest:1};longRunDur=null;}
-  else if(w<=4){easyDur=25;tempoSpec={dur:20};vo2Spec={reps:5,work:4,rest:1.5};longRunDur=null;}
-  else if(w<=6){easyDur=30;tempoSpec={dur:20,blocks:2,bd:10,rec:2};vo2Spec={reps:6,work:4,rest:1.5};longRunDur=35;}
-  else if(w<=8){easyDur=30;tempoSpec={dur:25};vo2Spec={reps:6,work:4,rest:1};longRunDur=40;}
-  else if(w<=10){easyDur=30;tempoSpec={dur:25,blocks:2,bd:12,rec:2};vo2Spec={reps:7,work:4,rest:1};longRunDur=45;}
-  else if(w<=12){easyDur=35;tempoSpec={dur:30};vo2Spec={reps:7,work:4,rest:1};longRunDur=50;}
-  else if(w<=14){easyDur=30;tempoSpec={dur:25};vo2Spec={reps:6,work:3,rest:1,note:"Shorter & faster — 5K race pace"};longRunDur=40;}
-  else if(w<=16){easyDur=25;tempoSpec={dur:20};vo2Spec={reps:8,work:2,rest:1,note:"Short & sharp — faster than 5K pace"};longRunDur=35;}
-  else{easyDur=25;tempoSpec={dur:15,note:"Shakeout — smooth"};vo2Spec={reps:4,work:3,rest:1.5,note:"Light sharpener"};longRunDur=null;}
+  const wp = WEEK_PARAMS.find(p => w <= p.maxWeek);
+  let easyDur = wp.easyDur;
+  let tempoSpec = wp.tempo;
+  let vo2Spec = wp.vo2;
+  let longRunDur = wp.longRunDur;
 
   const tempoSegs = [{name:"Warm-Up",dur:"5:00",zone:"Z1-2",note:"Easy jog"}];
   if(tempoSpec.blocks){
@@ -196,7 +154,7 @@ function buildWeek(w) {
   return { week:w, phase:phase.name, phaseColor:phase.color, focus:phase.name==="Foundation"?"Build the aerobic base & movement habits":phase.name==="Build"?"Add volume & intensity across all three":phase.name==="Peak"?"Highest training load — push your ceiling":"Sharpen speed, maintain strength, test yourself", startDate:fmt(weekStart), days };
 }
 
-const ALL_WEEKS = Array.from({length:17},(_,i)=>buildWeek(i+1));
+let ALL_WEEKS;
 
 const STORE_KEY = "summer_engine_v1";
 let _dataCache = null;
@@ -213,15 +171,7 @@ function setNote(w,di,v) { const d=loadData(),k=skey(w,di); if(!d[k]) d[k]={}; d
 function getWeekDone(w) { const wk=ALL_WEEKS[w]; let c=0; wk.days.forEach((_,i)=>{ if(getDone(wk.week,i)) c++; }); return c; }
 function getTotalDone() { let c=0; ALL_WEEKS.forEach(wk=>wk.days.forEach((_,i)=>{ if(getDone(wk.week,i)) c++; })); return c; }
 
-let state = { week:0, expanded:null, resetConfirm:false };
-
-const now = new Date();
-const MS_PER_DAY = 24*60*60*1000;
-const daysSinceStart = Math.floor((now - START) / MS_PER_DAY);
-const todayWeekIdx = Math.floor(daysSinceStart / 7);
-const todayDayIdx = daysSinceStart % 7;
-if(todayWeekIdx>=0 && todayWeekIdx<17) state.week = todayWeekIdx;
-let lastRenderedWeek = -1;
+let state, now, daysSinceStart, todayWeekIdx, todayDayIdx, lastRenderedWeek;
 
 function h(tag, props, ...children) {
   const el = document.createElement(tag);
@@ -529,7 +479,7 @@ function render() {
 
   // HR Zones
   const zonesBox = h('div',{className:'zones-box'},h('div',{className:'zones-title'},'Heart Rate Zones'));
-  [{z:"Z1",r:"< 130",d:"Recovery",c:"#6B7280"},{z:"Z2",r:"130-145",d:"Easy / base",c:"#40916C"},{z:"Z3",r:"155-165",d:"Tempo",c:"#F77F00"},{z:"Z4",r:"165-175",d:"VO₂max",c:"#E63946"},{z:"Z5",r:"175+",d:"Max",c:"#C1121F"}].forEach(z => {
+  HR_ZONES.forEach(z => {
     zonesBox.appendChild(h('div',{className:'zone-row'},
       h('span',{className:'zone-label',style:{color:z.c}},z.z),
       h('span',{className:'zone-desc'},z.d),
@@ -558,18 +508,39 @@ function render() {
   });
 }
 
-// Swipe to change week
-let touchStartX=0, touchStartY=0;
-document.getElementById('app').addEventListener('touchstart', e=>{
-  touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY;
-},{passive:true});
-document.getElementById('app').addEventListener('touchend', e=>{
-  const dx=e.changedTouches[0].clientX-touchStartX;
-  const dy=e.changedTouches[0].clientY-touchStartY;
-  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
-    if(dx<0 && state.week<16){state.week++;state.expanded=null;render();}
-    else if(dx>0 && state.week>0){state.week--;state.expanded=null;render();}
+async function boot() {
+  try {
+    await fetchJsonData();
+  } catch(e) {
+    document.getElementById('app').textContent = 'Failed to load training data. Please reload.';
+    return;
   }
-},{passive:true});
+  ALL_WEEKS = Array.from({length:17},(_,i)=>buildWeek(i+1));
 
-render();
+  state = { week:0, expanded:null, resetConfirm:false };
+  now = new Date();
+  const MS_PER_DAY = 24*60*60*1000;
+  daysSinceStart = Math.floor((now - START) / MS_PER_DAY);
+  todayWeekIdx = Math.floor(daysSinceStart / 7);
+  todayDayIdx = daysSinceStart % 7;
+  if(todayWeekIdx>=0 && todayWeekIdx<17) state.week = todayWeekIdx;
+  lastRenderedWeek = -1;
+
+  // Swipe to change week
+  let touchStartX=0, touchStartY=0;
+  document.getElementById('app').addEventListener('touchstart', e=>{
+    touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY;
+  },{passive:true});
+  document.getElementById('app').addEventListener('touchend', e=>{
+    const dx=e.changedTouches[0].clientX-touchStartX;
+    const dy=e.changedTouches[0].clientY-touchStartY;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      if(dx<0 && state.week<16){state.week++;state.expanded=null;render();}
+      else if(dx>0 && state.week>0){state.week--;state.expanded=null;render();}
+    }
+  },{passive:true});
+
+  render();
+}
+
+boot();

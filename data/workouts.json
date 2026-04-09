@@ -1,0 +1,20 @@
+{
+  "hrZones": [
+    { "z": "Z1", "r": "< 130", "d": "Recovery", "c": "#6B7280" },
+    { "z": "Z2", "r": "130-145", "d": "Easy / base", "c": "#40916C" },
+    { "z": "Z3", "r": "155-165", "d": "Tempo", "c": "#F77F00" },
+    { "z": "Z4", "r": "165-175", "d": "VO₂max", "c": "#E63946" },
+    { "z": "Z5", "r": "175+", "d": "Max", "c": "#C1121F" }
+  ],
+  "weekParams": [
+    { "maxWeek": 2,  "easyDur": 20, "tempo": { "dur": 15 }, "vo2": { "reps": 5, "work": 4, "rest": 1 }, "longRunDur": null },
+    { "maxWeek": 4,  "easyDur": 25, "tempo": { "dur": 20 }, "vo2": { "reps": 5, "work": 4, "rest": 1.5 }, "longRunDur": null },
+    { "maxWeek": 6,  "easyDur": 30, "tempo": { "dur": 20, "blocks": 2, "bd": 10, "rec": 2 }, "vo2": { "reps": 6, "work": 4, "rest": 1.5 }, "longRunDur": 35 },
+    { "maxWeek": 8,  "easyDur": 30, "tempo": { "dur": 25 }, "vo2": { "reps": 6, "work": 4, "rest": 1 }, "longRunDur": 40 },
+    { "maxWeek": 10, "easyDur": 30, "tempo": { "dur": 25, "blocks": 2, "bd": 12, "rec": 2 }, "vo2": { "reps": 7, "work": 4, "rest": 1 }, "longRunDur": 45 },
+    { "maxWeek": 12, "easyDur": 35, "tempo": { "dur": 30 }, "vo2": { "reps": 7, "work": 4, "rest": 1 }, "longRunDur": 50 },
+    { "maxWeek": 14, "easyDur": 30, "tempo": { "dur": 25 }, "vo2": { "reps": 6, "work": 3, "rest": 1, "note": "Shorter & faster — 5K race pace" }, "longRunDur": 40 },
+    { "maxWeek": 16, "easyDur": 25, "tempo": { "dur": 20 }, "vo2": { "reps": 8, "work": 2, "rest": 1, "note": "Short & sharp — faster than 5K pace" }, "longRunDur": 35 },
+    { "maxWeek": 99, "easyDur": 25, "tempo": { "dur": 15, "note": "Shakeout — smooth" }, "vo2": { "reps": 4, "work": 3, "rest": 1.5, "note": "Light sharpener" }, "longRunDur": null }
+  ]
+}
