@@ -283,8 +283,23 @@ body {
 .ex-cue { font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
 .ex-spine { font-size: 11px; color: var(--orange); margin-top: 5px; line-height: 1.4; }
 .ex-hint { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 11px; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; background: rgba(128,128,128,0.12); color: var(--text-dim); }
-.ex-hint.up { background: rgba(52,199,89,0.12); color: var(--green); }
+.ex-hint.up { background: rgba(52,199,89,0.12); }
+.ex-hint.down { background: rgba(255,159,10,0.12); }
 .ex-hint.new { color: var(--text-faint); }
+.ex-suggest-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.ex-suggest { flex: 1; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.ex-suggest-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
+.ex-suggest-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+.ex-hint.up .ex-suggest-val { color: var(--green); }
+.ex-hint.down .ex-suggest-val { color: var(--orange); }
+.use-btn { background: var(--blue); border: none; color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+.use-btn:active { transform: scale(0.94); }
+.next-plan { border: 1px solid rgba(10,132,255,0.35); }
+.sg-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; background: var(--text-faint); vertical-align: middle; }
+.sg-dot.up { background: var(--green); } .sg-dot.add { background: var(--blue); } .sg-dot.hold { background: var(--text-faint); } .sg-dot.down { background: var(--orange); }
+.mini-dur.sg-up { color: var(--green); font-weight: 700; } .mini-dur.sg-down { color: var(--orange); font-weight: 700; } .mini-dur.sg-add { color: var(--text); }
+.sg-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.sg-key { font-size: 10px; color: var(--text-faint); display: flex; align-items: center; }
 .ex-last { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); }
 .set-grid { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .set-row { display: flex; align-items: center; gap: 6px; }

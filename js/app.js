@@ -3,7 +3,6 @@
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const DOW_SHORT = ["M","T","W","T","F","S","S"];
 const KEY_KINDS = ["push","legs","pull","cardio"];
 const KIND_ABBR = { push:"P", legs:"L", pull:"Pu", cardio:"C" };
 const MS_PER_DAY = 24*60*60*1000;
@@ -118,21 +117,37 @@ function fmtSets(sets, units) {
   if(ws.length===1) return `${ws[0]} ${units} × ${reps}`;
   return sets.map(s=>`${s.w!=null?s.w:'–'}×${s.r!=null?s.r:'–'}`).join('  ');
 }
-function progressionHint(ex, last, w) {
-  if(!last) return { text:'First time — start light, find a weight where the last rep still looks clean.', kind:'new' };
+// Suggest next session's weight + reps for an exercise, given the last logged session.
+// Double progression: fill the rep range at a weight, then take the smallest step up.
+function suggestNext(ex, last, w) {
+  const sets = setsFor(w);
   const { lo, hi } = repRange(repsFor(ex, w));
+  const units = store.settings.units;
+  const fmtW = x => ex.equip==='Cable' ? `${x} ${units} (stack)` : `${x} ${units}`;
+  if(!last) return { kind:'new', weight:null, reps:Array(sets).fill(lo), text:`First time — start light. Aim for ${lo} clean reps per set with 3 left in the tank; note the weight and the app takes it from here.` };
   const reps = last.sets.map(s=>s.r).filter(r=>r!=null);
-  if(!reps.length) return { text:'Log reps to get a progression hint.', kind:'new' };
-  const w0 = last.sets.map(s=>s.w).filter(x=>x!=null);
-  const weight = w0.length ? Math.max(...w0) : null;
-  const target = setsFor(w);
-  if(reps.length >= target && reps.every(r => r >= hi)) {
-    const next = weight!=null ? (ex.equip==='Cable' ? `${weight} + ${P.progression.cableStep}` : `${weight+unitStep()} ${store.settings.units}`) : 'a small step up';
-    return { text:`Hit the top of the range last time — go up to ${next} and start again at ${lo}.`, kind:'up' };
+  const ws = last.sets.map(s=>s.w).filter(x=>x!=null);
+  const weight = ws.length ? Math.max(...ws) : null;
+  const step = unitStep();
+  const extend = arr => Array.from({length:sets},(_,i)=> arr[Math.min(i, arr.length-1)]);
+  if(!reps.length) {
+    return { kind:'hold', weight, reps:Array(sets).fill(lo), text:`Reps weren't logged last time — stay at ${weight!=null?fmtW(weight):'the same weight'} and aim for ${lo}-${hi}.` };
   }
-  if(reps.some(r => r < lo)) return { text:`Stay at ${weight!=null?weight+' '+store.settings.units:'the same weight'} and build reps into the ${lo}-${hi} range.`, kind:'hold' };
-  return { text:`Same weight, add a rep or two. Target ${hi} on every set before moving up.`, kind:'hold' };
+  if(reps.every(r => r >= hi)) {
+    const nw = weight!=null ? weight + step : null;
+    return { kind:'up', weight:nw, reps:Array(sets).fill(lo), text:`You hit ${hi}+ on every set — go up ${step} ${units}${ex.equip==='Cable'?' (one plate)':''} and start again at ${lo} reps.` };
+  }
+  const avg = reps.reduce((a,b)=>a+b,0)/reps.length;
+  if(avg < lo - 2 && weight!=null) {
+    return { kind:'down', weight:Math.max(0, weight - step), reps:Array(sets).fill(lo), text:`Reps fell well under ${lo} — that weight is too heavy for now. Drop ${step} ${units} and own ${lo} clean reps. Nothing in this plan should be a grind.` };
+  }
+  if(reps.some(r => r < lo)) {
+    return { kind:'hold', weight, reps:extend(reps).map(r=>Math.max(lo, Math.min(hi, r))), text:`Same weight. Get every set to at least ${lo} reps before adding more.` };
+  }
+  const next = extend(reps).map(r => Math.min(hi, r + 1));
+  return { kind:'add', weight, reps:next, text:`Same weight, one more rep per set. When every set reaches ${hi}, the weight goes up.` };
 }
+const fmtSuggest = (sg, units) => sg.weight!=null ? `${sg.weight} ${units} × ${sg.reps.join(', ')}` : `${sg.reps.join(', ')} reps`;
 
 /* ---------------- Counting ---------------- */
 function weekKeyDone(w) {
@@ -203,6 +218,8 @@ let noteTimer = null;
 
 function render() {
   if(noteTimer) { clearTimeout(noteTimer); noteTimer = null; }
+  if(nextPlanTimer) { clearTimeout(nextPlanTimer); nextPlanTimer = null; }
+  state.nextPlanCtx = null;
   const savedScroll = window.scrollY;
   const weekChanged = state.week !== state.lastRenderedWeek;
   state.lastRenderedWeek = state.week;
@@ -441,7 +458,7 @@ function renderLiftDetail(detail, wk, day, sess, est, units) {
   def.exercises.forEach((ex, i) => {
     const reps = repsFor(ex, wNum);
     const last = lastLog(day.kind, ex.id, store.settings.cycle, wNum);
-    const hint = progressionHint(ex, last, wNum);
+    const sg = suggestNext(ex, last, wNum);
     const logged = (sess.sets && sess.sets[ex.id]) || [];
     const exEl = h('div',{className:'exercise'});
     exEl.appendChild(h('div',{className:'ex-top'},
@@ -450,23 +467,39 @@ function renderLiftDetail(detail, wk, day, sess, est, units) {
     ));
     exEl.appendChild(h('div',{className:'ex-cue'},ex.cue));
     if(ex.spine) exEl.appendChild(h('div',{className:'ex-spine'},'🦴 '+ex.spine));
-    exEl.appendChild(h('div',{className:`ex-hint ${hint.kind}`},
-      last ? h('span',{className:'ex-last'},`Last (wk ${last.week}${last.cycle!==store.settings.cycle?', cycle '+last.cycle:''}): ${fmtSets(last.sets, units)}`) : null,
-      h('span',{className:'ex-hint-text'},hint.text),
-    ));
 
+    // Suggestion box: last session → this session's target, with one-tap fill
     const grid = h('div',{className:'set-grid'});
-    const lastW = last ? last.sets.map(s=>s.w).filter(x=>x!=null) : [];
+    const inputs = [];
+    const hintBox = h('div',{className:`ex-hint ${sg.kind}`});
+    if(last) hintBox.appendChild(h('div',{className:'ex-last'},`Last (wk ${last.week}${last.cycle!==store.settings.cycle?', cycle '+last.cycle:''}): ${fmtSets(last.sets, units)}`));
+    const sgRow = h('div',{className:'ex-suggest-row'});
+    sgRow.appendChild(h('div',{className:'ex-suggest'},h('span',{className:'ex-suggest-label'},'Today'),h('span',{className:'ex-suggest-val'},fmtSuggest(sg, units))));
+    if(sg.weight!=null || last) {
+      sgRow.appendChild(h('button',{className:'use-btn',onClick:(e)=>{
+        e.stopPropagation();
+        inputs.forEach((pair, si) => {
+          if(sg.weight!=null) { pair.w.value = sg.weight; setSetField(day.key, ex.id, si, 'w', sg.weight); }
+          pair.r.value = sg.reps[si]; setSetField(day.key, ex.id, si, 'r', sg.reps[si]);
+        });
+        if(navigator.vibrate) navigator.vibrate(20);
+      }},'Use'));
+    }
+    hintBox.appendChild(sgRow);
+    hintBox.appendChild(h('div',{className:'ex-hint-text'},sg.text));
+    exEl.appendChild(hintBox);
+
     for(let si=0; si<sets; si++) {
       const row = h('div',{className:'set-row'});
       row.appendChild(h('span',{className:'set-n'},`Set ${si+1}`));
-      const wIn = h('input',{className:'set-in',type:'number',inputmode:'decimal',step:'0.5',min:'0',placeholder: lastW.length ? String(lastW[Math.min(si,lastW.length-1)]) : '–'});
+      const wIn = h('input',{className:'set-in',type:'number',inputmode:'decimal',step:'0.5',min:'0',placeholder: sg.weight!=null ? String(sg.weight) : '–'});
       if(logged[si]?.w!=null) wIn.value = logged[si].w;
-      wIn.addEventListener('input',()=>setSetField(day.key, ex.id, si, 'w', wIn.value));
-      const rIn = h('input',{className:'set-in',type:'number',inputmode:'numeric',step:'1',min:'0',placeholder: last?.sets[si]?.r!=null ? String(last.sets[si].r) : repRange(reps).lo});
+      wIn.addEventListener('input',()=>{ setSetField(day.key, ex.id, si, 'w', wIn.value); scheduleNextPlan(); });
+      const rIn = h('input',{className:'set-in',type:'number',inputmode:'numeric',step:'1',min:'0',placeholder: String(sg.reps[si])});
       if(logged[si]?.r!=null) rIn.value = logged[si].r;
-      rIn.addEventListener('input',()=>setSetField(day.key, ex.id, si, 'r', rIn.value));
+      rIn.addEventListener('input',()=>{ setSetField(day.key, ex.id, si, 'r', rIn.value); scheduleNextPlan(); });
       row.appendChild(wIn); row.appendChild(h('span',{className:'set-x'},units)); row.appendChild(rIn); row.appendChild(h('span',{className:'set-x'},'reps'));
+      inputs.push({w:wIn, r:rIn});
       grid.appendChild(row);
     }
     exEl.appendChild(grid);
@@ -486,6 +519,53 @@ function renderLiftDetail(detail, wk, day, sess, est, units) {
   tm.appendChild(h('div',{className:'inline-detail-title'},def.treadmill.style));
   tm.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},def.treadmill.note));
   detail.appendChild(tm);
+
+  // Next week's plan, computed live from what was logged today
+  const nextBox = h('div',{className:'inline-detail next-plan',id:'next-plan'});
+  detail.appendChild(nextBox);
+  renderNextPlan(nextBox, wk, day, units);
+}
+
+// Debounced refresh of the next-week box while typing (avoids a full re-render that would steal focus)
+let nextPlanTimer = null;
+function scheduleNextPlan() {
+  if(nextPlanTimer) clearTimeout(nextPlanTimer);
+  nextPlanTimer = setTimeout(()=>{
+    const box = document.getElementById('next-plan');
+    if(!box || !state.nextPlanCtx) return;
+    renderNextPlan(box, state.nextPlanCtx.wk, state.nextPlanCtx.day, store.settings.units);
+  }, 400);
+}
+function renderNextPlan(box, wk, day, units) {
+  state.nextPlanCtx = { wk, day };
+  box.innerHTML = '';
+  const def = day.def, wNum = wk.week;
+  const nextW = wNum + 1;
+  const isLastWeek = nextW > WEEKS;
+  const nextBlock = getBlock(isLastWeek ? 1 : nextW);
+  const sess = getSession(day.key) || {};
+  box.appendChild(h('div',{className:'inline-detail-label'},`📅 Next ${def.name} day · ${isLastWeek ? 'next cycle, week 1' : 'week '+nextW} · ${nextBlock.name}`));
+  const rows = [];
+  def.exercises.forEach(ex => {
+    const todays = sess.sets && hasLog(sess.sets[ex.id]) ? { cycle:store.settings.cycle, week:wNum, sets:sess.sets[ex.id].filter(x=>x&&(x.w!=null||x.r!=null)) } : lastLog(day.kind, ex.id, store.settings.cycle, wNum);
+    if(!todays) return;
+    const sg = suggestNext(ex, todays, isLastWeek ? 1 : nextW);
+    rows.push(h('div',{className:'mini-row'},
+      h('span',{className:'mini-name'},h('span',{className:`sg-dot ${sg.kind}`}),ex.name),
+      h('span',{className:`mini-dur sg-${sg.kind}`},fmtSuggest(sg, units)),
+    ));
+  });
+  if(!rows.length) {
+    box.appendChild(h('div',{className:'mini-note'},'Log your weights and reps above and next week\'s targets appear here as you type.'));
+  } else {
+    rows.forEach(r => box.appendChild(r));
+    box.appendChild(h('div',{className:'sg-legend'},
+      h('span',{className:'sg-key'},h('span',{className:'sg-dot up'}),'weight up'),
+      h('span',{className:'sg-key'},h('span',{className:'sg-dot add'}),'+1 rep'),
+      h('span',{className:'sg-key'},h('span',{className:'sg-dot hold'}),'hold'),
+      h('span',{className:'sg-key'},h('span',{className:'sg-dot down'}),'lighter'),
+    ));
+  }
 }
 
 function renderCardioDetail(detail, day, sess) {
