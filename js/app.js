@@ -965,7 +965,7 @@ function computeToday() {
   todayDowIdx = ((daysSinceStart % 7) + 7) % 7;
 }
 async function boot() {
-  try { P = await fetch('data/program.json').then(r => r.json()); }
+  try { P = await fetch('data/program.json?v=5').then(r => r.json()); }
   catch(e) { document.getElementById('app').textContent = 'Failed to load the program. Please reload.'; return; }
   WEEKS = P.meta.weeks;
   store = loadStore(); saveStore(); applyTheme();

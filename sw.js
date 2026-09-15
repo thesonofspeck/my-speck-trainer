@@ -1,6 +1,6 @@
 /* MySpeckTrainer service worker — offline-first for the gym basement */
-const CACHE = 'speck-strength-v2';
-const ASSETS = ['./', './index.html', './css/style.css', './js/app.js', './data/program.json', './manifest.json', './icons/icon.svg'];
+const CACHE = 'speck-strength-v5';
+const ASSETS = ['./', './index.html', './css/style.css?v=5', './js/app.js?v=5', './data/program.json?v=5', './manifest.json', './icons/icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
