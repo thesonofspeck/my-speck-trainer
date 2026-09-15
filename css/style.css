@@ -292,11 +292,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .ex-alt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .ex-alt { font-size: 13px; color: var(--label-2); min-width: 0; }
 .sets { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-.set { display: grid; grid-template-columns: 22px 1fr 1fr 44px; gap: 8px; align-items: center; }
+.set { display: grid; grid-template-columns: 22px minmax(0,1fr) minmax(0,1fr) 44px; gap: 8px; align-items: center; }
 .set-n { font-size: 13px; font-weight: 600; color: var(--label-3); text-align: center; }
 .set.done .set-n { color: var(--ok); }
-.set-field { display: flex; align-items: center; gap: 6px; }
-.set-in { flex: 1; min-width: 0; height: 44px; border: none; border-radius: 12px; background: var(--fill-4); color: var(--label); font-size: 18px; font-weight: 600; text-align: center; -moz-appearance: textfield; }
+.set-field { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.set-in { flex: 1 1 0; width: 0; min-width: 0; height: 44px; border: none; border-radius: 12px; background: var(--fill-4); color: var(--label); font-size: 18px; font-weight: 600; text-align: center; -moz-appearance: textfield; }
 .set-in::-webkit-outer-spin-button, .set-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .set-in::placeholder { color: var(--label-3); font-weight: 500; }
 .set-in:focus { outline: 2px solid var(--tint); outline-offset: 0; }
