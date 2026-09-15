@@ -1,8 +1,9 @@
 {
   "name": "MySpeckTrainer",
   "short_name": "SpeckTrainer",
-  "description": "17-week athletic training program tracker",
+  "description": "Push / Legs / Pull strength + treadmill tracker — 12-week cycles, dumbbells and cables only",
   "start_url": "/my-speck-trainer/",
+  "scope": "/my-speck-trainer/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

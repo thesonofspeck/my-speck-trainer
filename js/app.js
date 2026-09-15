@@ -1,181 +1,151 @@
-const START = new Date(2026, 3, 6);
+/* MySpeckTrainer — Strength · Treadmill · Core
+   Vanilla JS PWA. All state lives in localStorage. */
+
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DOW_SHORT = ["M","T","W","T","F","S","S"];
+const KEY_KINDS = ["push","legs","pull","cardio"];
+const KIND_ABBR = { push:"P", legs:"L", pull:"Pu", cardio:"C" };
+const MS_PER_DAY = 24*60*60*1000;
+
 const fmt = d => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+// Monday of the week containing d (local time)
+function mondayOf(d) { const r = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const dow = (r.getDay()+6)%7; r.setDate(r.getDate()-dow); return r; }
 
-let PHASES, ICONS, BW, BW_BY_PHASE, SWIM, SWIM_BY_PHASE, WATCH, HR_ZONES, WEEK_PARAMS;
-const getPhase = w => PHASES.find(p => p.weeks.includes(w));
-const getPhaseIndex = w => PHASES.findIndex(p => p.weeks.includes(w));
-const getBW = w => BW_BY_PHASE[getPhaseIndex(w)];
-const getSwim = w => SWIM_BY_PHASE[getPhaseIndex(w)];
+let P;             // program.json
+let WEEKS;         // number of weeks in a cycle
+let store;         // persisted state
+let state;         // ui state
+let today, todayWeekIdx, todayDowIdx;
 
-async function fetchJsonData() {
-  const [phasesData, bwData, swimData, watchData, workoutsData] = await Promise.all([
-    fetch('data/phases.json').then(r => r.json()),
-    fetch('data/bodyweight.json').then(r => r.json()),
-    fetch('data/swim.json').then(r => r.json()),
-    fetch('data/watch.json').then(r => r.json()),
-    fetch('data/workouts.json').then(r => r.json()),
-  ]);
-  PHASES = phasesData.phases;
-  ICONS = phasesData.icons;
-  BW = bwData;
-  BW_BY_PHASE = [BW.foundation, BW.build, BW.peak, BW.raceShape];
-  SWIM = swimData;
-  SWIM_BY_PHASE = [SWIM.foundation, SWIM.build, SWIM.peak, SWIM.raceShape];
-  WATCH = watchData;
-  HR_ZONES = workoutsData.hrZones;
-  WEEK_PARAMS = workoutsData.weekParams;
+/* ---------------- Storage ---------------- */
+const STORE_KEY = "speck_strength_v1";
+function defaultSettings() {
+  return { gymDays:[0,2,4], floatDay:5, startDate: iso(mondayOf(new Date())), units:"lb", cycle:1 };
+}
+function loadStore() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch { s = null; }
+  if(!s || typeof s !== 'object') s = {};
+  s.settings = Object.assign(defaultSettings(), s.settings || {});
+  if(!Array.isArray(s.settings.gymDays) || s.settings.gymDays.length===0) s.settings.gymDays = [0,2,4];
+  s.settings.gymDays = [...new Set(s.settings.gymDays)].filter(d=>d>=0&&d<=4).sort((a,b)=>a-b).slice(0,3);
+  if(!s.sessions) s.sessions = {};
+  return s;
+}
+function saveStore() { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch {} }
+
+const sessionKey = (cycle, week, kind, dow) => kind==='rest' ? `c${cycle}-w${week}-rest-${dow}` : `c${cycle}-w${week}-${kind}`;
+function getSession(key) { return store.sessions[key] || null; }
+function touchSession(key) { if(!store.sessions[key]) store.sessions[key] = {}; return store.sessions[key]; }
+function setDone(key, v) { const s = touchSession(key); s.done = v; s.doneAt = v ? iso(new Date()) : undefined; saveStore(); }
+function setNote(key, v) { const s = touchSession(key); s.note = v; saveStore(); }
+function setChoice(key, v) { const s = touchSession(key); s.choice = v; saveStore(); }
+function setSetField(key, exId, idx, field, val) {
+  const s = touchSession(key);
+  if(!s.sets) s.sets = {};
+  if(!s.sets[exId]) s.sets[exId] = [];
+  if(!s.sets[exId][idx]) s.sets[exId][idx] = {};
+  const n = val === '' ? null : Number(val);
+  s.sets[exId][idx][field] = (n===null || Number.isNaN(n)) ? null : n;
+  saveStore();
 }
 
+/* ---------------- Program helpers ---------------- */
+const getBlock = w => P.blocks.find(b => b.weeks.includes(w)) || P.blocks[P.blocks.length-1];
+const setsFor = w => { const b = getBlock(w); return b.sets[w - b.weeks[0]] ?? b.sets[b.sets.length-1]; };
+const repsFor = (ex, w) => ex.reps || getBlock(w).reps;
+const repRange = r => { const [lo, hi] = String(r).split('-').map(Number); return { lo, hi: hi||lo }; };
+const startDate = () => parseISO(store.settings.startDate);
+const weekStart = w => addDays(startDate(), (w-1)*7);
+const unitStep = () => store.settings.units==='kg' ? P.progression.dbStepKg : P.progression.dbStepLb;
+
+// Build 7 days for a week: assign push/legs/pull to gym days in order, cardio to the floating day.
 function buildWeek(w) {
-  const phase = getPhase(w);
-  const bw = getBW(w);
-  const swim = getSwim(w);
-  const wp = WEEK_PARAMS.find(p => w <= p.maxWeek);
-  let easyDur = wp.easyDur;
-  let tempoSpec = wp.tempo;
-  let vo2Spec = wp.vo2;
-  let longRunDur = wp.longRunDur;
-
-  const tempoSegs = [{name:"Warm-Up",dur:"5:00",zone:"Z1-2",note:"Easy jog"}];
-  if(tempoSpec.blocks){
-    for(let i=1;i<=tempoSpec.blocks;i++){
-      tempoSegs.push({name:`Tempo Block ${i}`,dur:`${tempoSpec.bd}:00`,zone:"Z3-4",note:tempoSpec.note||"Comfortably hard",repeat:true});
-      if(i<tempoSpec.blocks) tempoSegs.push({name:"Easy Recovery",dur:`${tempoSpec.rec}:00`,zone:"Z2",note:"Jog easy"});
-    }
-  } else {
-    tempoSegs.push({name:"Tempo",dur:`${tempoSpec.dur}:00`,zone:"Z3-4",note:tempoSpec.note||"Comfortably hard — sustained"});
+  const gym = [...store.settings.gymDays].sort((a,b)=>a-b);
+  let floatDay = store.settings.floatDay;
+  if(gym.includes(floatDay)) { // pick next free day, prefer later in the week
+    const free = [0,1,2,3,4,5,6].filter(d=>!gym.includes(d));
+    floatDay = free.find(d=>d>floatDay) ?? free[free.length-1];
   }
-  tempoSegs.push({name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"});
-  const tempoTot = tempoSpec.blocks ? 5+(tempoSpec.bd*tempoSpec.blocks)+(tempoSpec.rec*(tempoSpec.blocks-1))+3 : 5+tempoSpec.dur+3;
-
-  const restFmt = vo2Spec.rest>=1 ? (vo2Spec.rest%1===0?`${vo2Spec.rest}:00`:`${Math.floor(vo2Spec.rest)}:30`) : `0:${vo2Spec.rest*60}`;
-  const vo2Tot = 5+(vo2Spec.reps*(vo2Spec.work+vo2Spec.rest))+3;
-
-  const poolTue = w>=5;
-  const poolSat = w>=4;
-  const weekStart = addDays(START,(w-1)*7);
-  const hasLong = longRunDur!==null;
-  const isEven = w%2===0;
-
-  if(w===1){
-    return { week:w, phase:phase.name, phaseColor:phase.color, focus:"Build the habit — you started with intervals, now build around them", startDate:fmt(START), days:[
-      {day:"Mon",date:fmt(START),type:"REST",label:"Rest Day",color:"#555",segments:[{name:"Rest",dur:"—",zone:"",note:"Program starts tomorrow"}],total:"Off"},
-      {day:"Tue",date:fmt(addDays(START,1)),type:"VO2MAX",label:"VO₂max Intervals",color:"#E63946",segments:[
-        {name:"Warm-Up",dur:"5:00",zone:"Z1-2",note:"Easy jog"},
-        {name:"Hard Run",dur:"4:00",zone:"Z4-5",note:"8:30/mi — done!",repeat:true},
-        {name:"Recovery",dur:"1:00",zone:"Z1",note:"Walk",repeat:true},
-        {name:"↻ Repeat",dur:"×5",zone:"",note:"Completed at 8:30 pace"},
-        {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-      ],total:"33 min"},
-      {day:"Wed",date:fmt(addDays(START,2)),type:"EASY",label:"Easy Run",color:"#40916C",segments:[
-        {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → jog"},
-        {name:"Easy Run",dur:"20:00",zone:"Z2",note:"130-145 bpm. Way slower than yesterday."},
-        {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-      ],total:"28 min"},
-      {day:"Thu",date:fmt(addDays(START,3)),type:"TEMPO",label:"Tempo Run",color:"#F77F00",segments:tempoSegs,total:`${tempoTot} min`},
-      {day:"Fri",date:fmt(addDays(START,4)),type:"EASY",label:"Easy Run + Bodyweight",color:"#40916C",segments:[
-        {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → jog"},
-        {name:"Easy Run",dur:"20:00",zone:"Z2",note:"Same as Wednesday"},
-        {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-        {name:"Bodyweight",dur:"~20 min",zone:"Strength",note:bw.label},
-      ],total:"48 min"},
-      {day:"Sat",date:fmt(addDays(START,5)),type:"CROSS",label:"Walk or Hike",color:"#6B7280",segments:[
-        {name:"Easy Walk",dur:"40-50 min",zone:"Z1",note:"No pool yet — get outside, stay loose."},
-      ],total:"40-50 min"},
-      {day:"Sun",date:fmt(addDays(START,6)),type:"PLAY",label:"Beach Volleyball",color:"#9B5DE5",segments:[
-        {name:"Beach Volleyball",dur:"As long as you want",zone:"Fun",note:"Natural interval training"},
-      ],total:"Enjoy"},
-    ]};
+  const kinds = ["push","legs","pull"];
+  const ws = weekStart(w);
+  const cycle = store.settings.cycle;
+  const days = [];
+  for(let d=0; d<7; d++) {
+    let kind = 'rest';
+    const gi = gym.indexOf(d);
+    if(gi>=0 && gi<kinds.length) kind = kinds[gi];
+    else if(d===floatDay) kind = 'cardio';
+    days.push({ dow:d, dowName:DOW[d], date:fmt(addDays(ws,d)), kind, key:sessionKey(cycle,w,kind,d), def:P.days[kind] });
   }
-
-  const days = [
-    {day:"Mon",date:fmt(weekStart),type:"EASY",label:"Easy Run",color:"#40916C",segments:[
-      {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → jog"},
-      {name:"Easy Run",dur:`${easyDur}:00`,zone:"Z2",note:"Conversational. 130-145 bpm."},
-      {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-    ],total:`${easyDur+8} min`},
-
-    poolTue
-      ? {day:"Tue",date:fmt(addDays(weekStart,1)),type:"SWIM",label:"Swim + Bodyweight",color:"#3A86FF",segments:[
-          {name:"Swim",dur:swim.dur,zone:"Cardio",note:swim.desc},
-          {name:"Bodyweight",dur:"~20 min",zone:"Strength",note:bw.label},
-        ],total:"45-55 min"}
-      : {day:"Tue",date:fmt(addDays(weekStart,1)),type:"CROSS",label:"Walk + Bodyweight",color:"#6B7280",segments:[
-          {name:"Brisk Walk",dur:"30:00",zone:"Z1-2",note:"Active recovery for your legs"},
-          {name:"Bodyweight",dur:"~20 min",zone:"Strength",note:bw.label},
-        ],total:"~50 min"},
-
-    {day:"Wed",date:fmt(addDays(weekStart,2)),type:"VO2MAX",label:"VO₂max Intervals",color:"#E63946",segments:[
-      {name:"Warm-Up",dur:"5:00",zone:"Z1-2",note:"Easy jog"},
-      {name:"Hard Run",dur:`${vo2Spec.work}:00`,zone:"Z4-5",note:vo2Spec.note||"Hard but controlled — RPE 8/10",repeat:true},
-      {name:"Recovery",dur:restFmt,zone:"Z1",note:"Walk or very slow jog",repeat:true},
-      {name:"↻ Repeat",dur:`×${vo2Spec.reps}`,zone:"",note:`${vo2Spec.reps} rounds`},
-      {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-    ],total:`${Math.round(vo2Tot)} min`},
-
-    isEven&&w>=4
-      ? {day:"Thu",date:fmt(addDays(weekStart,3)),type:"PROGRESS",label:"Progression Run",color:"#7B2D8E",segments:[
-          {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → jog"},
-          {name:"Easy",dur:w<=8?"10:00":"12:00",zone:"Z2",note:"Settle in"},
-          {name:"Moderate",dur:"10:00",zone:"Z3",note:"Pick it up"},
-          {name:"Hard",dur:w<=8?"5:00":w<=12?"8:00":"5:00",zone:"Z4",note:"Finish strong"},
-          {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-        ],total:`${5+(w<=8?25:w<=12?30:25)+3} min`}
-      : {day:"Thu",date:fmt(addDays(weekStart,3)),type:"EASY",label:"Easy Run + Bodyweight",color:"#40916C",segments:[
-          {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → jog"},
-          {name:"Easy Run",dur:`${easyDur}:00`,zone:"Z2",note:"Easy — recovery from yesterday's intervals"},
-          {name:"Cool-Down",dur:"3:00",zone:"Z1",note:"Walk"},
-          {name:"Bodyweight",dur:"~20 min",zone:"Strength",note:bw.label},
-        ],total:`${easyDur+28} min`},
-
-    {day:"Fri",date:fmt(addDays(weekStart,4)),type:"TEMPO",label:"Tempo Run",color:"#F77F00",segments:tempoSegs,total:`${tempoTot} min`},
-
-    hasLong
-      ? {day:"Sat",date:fmt(addDays(weekStart,5)),type:"LONG",label:"Long Easy Run",color:"#1B4332",segments:[
-          {name:"Warm-Up",dur:"5:00",zone:"Z1",note:"Walk → easy jog"},
-          {name:"Long Run",dur:`${longRunDur}:00`,zone:"Z2",note:"Easy pace the entire time. Build your engine."},
-          {name:"Cool-Down",dur:"5:00",zone:"Z1",note:"Walk, stretch"},
-        ],total:`${longRunDur+10} min`}
-      : poolSat
-        ? {day:"Sat",date:fmt(addDays(weekStart,5)),type:"SWIM",label:"Pool Session",color:"#3A86FF",segments:[
-            {name:"Swim",dur:swim.dur,zone:"Easy",note:swim.desc},
-          ],total:swim.dur}
-        : {day:"Sat",date:fmt(addDays(weekStart,5)),type:"CROSS",label:"Walk or Hike",color:"#6B7280",segments:[
-            {name:"Easy Walk",dur:"40-50 min",zone:"Z1",note:"No pool yet. Get outside, stay loose."},
-          ],total:"40-50 min"},
-
-    {day:"Sun",date:fmt(addDays(weekStart,6)),type:"PLAY",label:"Beach Volleyball",color:"#9B5DE5",segments:[
-      {name:"Beach Volleyball",dur:"As long as you want",zone:"Fun",note:"Sprint, jump, recover"},
-    ],total:"Enjoy"},
-  ];
-
-  return { week:w, phase:phase.name, phaseColor:phase.color, focus:phase.name==="Foundation"?"Build the aerobic base & movement habits":phase.name==="Build"?"Add volume & intensity across all three":phase.name==="Peak"?"Highest training load — push your ceiling":"Sharpen speed, maintain strength, test yourself", startDate:fmt(weekStart), days };
+  return { week:w, block:getBlock(w), startDate:fmt(ws), endDate:fmt(addDays(ws,6)), days };
 }
 
-let ALL_WEEKS;
-
-const STORE_KEY = "summer_engine_v1";
-let _dataCache = null;
-function loadData() {
-  if(!_dataCache) { try { _dataCache = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { _dataCache = {}; } }
-  return _dataCache;
+function estimateMinutes(kind, w) {
+  const def = P.days[kind];
+  if(!def || !def.exercises) return null;
+  const sets = setsFor(w);
+  let lift = 0;
+  def.exercises.forEach(ex => { lift += sets * (ex.perSide ? 2 : 1.5); });
+  return { warm:P.meta.warmupMinutes, lift:Math.round(lift), core:P.meta.coreMinutes, total:Math.round(P.meta.warmupMinutes+lift+P.meta.coreMinutes) };
 }
-function saveData(d) { _dataCache = d; localStorage.setItem(STORE_KEY, JSON.stringify(d)); }
-const skey = (w,di) => `${w}-${di}`;
-function getDone(w,di) { return !!(loadData()[skey(w,di)]?.done); }
-function setDone(w,di,v) { const d=loadData(),k=skey(w,di); if(!d[k]) d[k]={}; d[k].done=v; saveData(d); }
-function getNote(w,di) { return loadData()[skey(w,di)]?.note||""; }
-function setNote(w,di,v) { const d=loadData(),k=skey(w,di); if(!d[k]) d[k]={}; d[k].note=v; saveData(d); }
-function getWeekDone(w) { const wk=ALL_WEEKS[w]; let c=0; wk.days.forEach((_,i)=>{ if(getDone(wk.week,i)) c++; }); return c; }
-function getTotalDone() { let c=0; ALL_WEEKS.forEach(wk=>wk.days.forEach((_,i)=>{ if(getDone(wk.week,i)) c++; })); return c; }
 
-let state, now, daysSinceStart, todayWeekIdx, todayDayIdx, lastRenderedWeek;
+/* ---------------- History / progression ---------------- */
+// All logged sessions for a kind, sorted by (cycle, week)
+function sessionsFor(kind) {
+  const out = [];
+  Object.entries(store.sessions).forEach(([k, s]) => {
+    const m = k.match(/^c(\d+)-w(\d+)-([a-z]+)$/);
+    if(m && m[3]===kind) out.push({ cycle:+m[1], week:+m[2], s });
+  });
+  return out.sort((a,b)=> a.cycle-b.cycle || a.week-b.week);
+}
+const hasLog = arr => Array.isArray(arr) && arr.some(x => x && (x.w!=null || x.r!=null));
+function exerciseLogs(kind, exId) {
+  return sessionsFor(kind).filter(e => e.s.sets && hasLog(e.s.sets[exId])).map(e => ({ cycle:e.cycle, week:e.week, sets:e.s.sets[exId].filter(x=>x&&(x.w!=null||x.r!=null)) }));
+}
+function lastLog(kind, exId, cycle, week) {
+  const logs = exerciseLogs(kind, exId).filter(l => l.cycle<cycle || (l.cycle===cycle && l.week<week));
+  return logs.length ? logs[logs.length-1] : null;
+}
+function fmtSets(sets, units) {
+  const ws = [...new Set(sets.map(s=>s.w).filter(w=>w!=null))];
+  const reps = sets.map(s=>s.r!=null?s.r:'–').join(', ');
+  if(ws.length===1) return `${ws[0]} ${units} × ${reps}`;
+  return sets.map(s=>`${s.w!=null?s.w:'–'}×${s.r!=null?s.r:'–'}`).join('  ');
+}
+function progressionHint(ex, last, w) {
+  if(!last) return { text:'First time — start light, find a weight where the last rep still looks clean.', kind:'new' };
+  const { lo, hi } = repRange(repsFor(ex, w));
+  const reps = last.sets.map(s=>s.r).filter(r=>r!=null);
+  if(!reps.length) return { text:'Log reps to get a progression hint.', kind:'new' };
+  const w0 = last.sets.map(s=>s.w).filter(x=>x!=null);
+  const weight = w0.length ? Math.max(...w0) : null;
+  const target = setsFor(w);
+  if(reps.length >= target && reps.every(r => r >= hi)) {
+    const next = weight!=null ? (ex.equip==='Cable' ? `${weight} + ${P.progression.cableStep}` : `${weight+unitStep()} ${store.settings.units}`) : 'a small step up';
+    return { text:`Hit the top of the range last time — go up to ${next} and start again at ${lo}.`, kind:'up' };
+  }
+  if(reps.some(r => r < lo)) return { text:`Stay at ${weight!=null?weight+' '+store.settings.units:'the same weight'} and build reps into the ${lo}-${hi} range.`, kind:'hold' };
+  return { text:`Same weight, add a rep or two. Target ${hi} on every set before moving up.`, kind:'hold' };
+}
 
+/* ---------------- Counting ---------------- */
+function weekKeyDone(w) {
+  const wk = buildWeek(w);
+  return wk.days.filter(d => d.kind!=='rest' && getSession(d.key)?.done).length;
+}
+function totalKeyDone() { let c=0; for(let w=1; w<=WEEKS; w++) c += weekKeyDone(w); return c; }
+
+/* ---------------- DOM helper ---------------- */
 function h(tag, props, ...children) {
   const el = document.createElement(tag);
   if(props) Object.entries(props).forEach(([k,v]) => {
+    if(v==null) return;
     if(k==='style'&&typeof v==='object') Object.assign(el.style,v);
     else if(k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(),v);
     else if(k==='className') el.className=v;
@@ -183,69 +153,77 @@ function h(tag, props, ...children) {
     else el.setAttribute(k,v);
   });
   children.flat(Infinity).forEach(c => {
-    if(c==null) return;
-    el.appendChild(typeof c==='string' ? document.createTextNode(c) : c);
+    if(c==null||c===false) return;
+    el.appendChild(typeof c==='string'||typeof c==='number' ? document.createTextNode(String(c)) : c);
   });
   return el;
 }
 
-function getWatchItem(day, week) {
-  const type = day.type;
-  if(!['EASY','VO2MAX','TEMPO','PROGRESS','LONG'].includes(type)) return null;
-  const phaseIdx = getPhaseIndex(week);
-  const items = WATCH[phaseIdx].items;
-  if(type==='EASY') {
-    const seg = day.segments.find(s=>s.name==='Easy Run');
-    if(seg) return items.find(it=>it.n===`Easy ${parseInt(seg.dur)}`);
+/* ---------------- Rest timer (lives outside the re-rendered tree) ---------------- */
+const timer = { remaining:0, total:0, id:null };
+function timerEl() { return document.getElementById('rest-timer'); }
+function startTimer(sec) {
+  stopTimer(false);
+  timer.total = sec; timer.remaining = sec;
+  timer.id = setInterval(() => {
+    timer.remaining--;
+    if(timer.remaining<=0) { stopTimer(true); return; }
+    drawTimer();
+  }, 1000);
+  drawTimer();
+}
+function stopTimer(finished) {
+  if(timer.id) clearInterval(timer.id);
+  timer.id = null;
+  const el = timerEl();
+  if(finished) {
+    if(navigator.vibrate) navigator.vibrate([120,60,120]);
+    el.className = 'rest-timer done';
+    el.innerHTML = '';
+    el.appendChild(h('span',{className:'rest-timer-text'},'Rest done — next set'));
+    el.appendChild(h('button',{className:'rest-timer-x',onClick:()=>{ el.className='rest-timer'; }},'✕'));
+    setTimeout(()=>{ if(el.className==='rest-timer done') el.className='rest-timer'; }, 4000);
+  } else {
+    el.className = 'rest-timer';
   }
-  if(type==='LONG') {
-    const seg = day.segments.find(s=>s.name==='Long Run');
-    if(seg) return items.find(it=>it.n===`Long ${parseInt(seg.dur)}`);
-  }
-  if(type==='TEMPO') {
-    const blocks = day.segments.filter(s=>s.name.startsWith('Tempo Block'));
-    if(blocks.length>0) return items.find(it=>it.n===`Tempo ${blocks.length}\u00d7${parseInt(blocks[0].dur)}`);
-    const seg = day.segments.find(s=>s.name==='Tempo');
-    if(seg) return items.find(it=>it.n===`Tempo ${parseInt(seg.dur)}`);
-  }
-  if(type==='VO2MAX') {
-    const repeat = day.segments.find(s=>s.name==='↻ Repeat');
-    const hard = day.segments.find(s=>s.name==='Hard Run');
-    const rec = day.segments.find(s=>s.name==='Recovery');
-    if(repeat&&hard&&rec) {
-      const reps = repeat.dur.replace('×','');
-      const work = parseInt(hard.dur);
-      const restStr = rec.dur==='1:00'?'1':rec.dur;
-      return items.find(it=>it.n===`VO2 ${reps}\u00d7(${work}+${restStr})`);
-    }
-  }
-  if(type==='PROGRESS') return items.find(it=>it.n.startsWith('Progression'));
-  return null;
+}
+function drawTimer() {
+  const el = timerEl();
+  el.className = 'rest-timer show';
+  el.innerHTML = '';
+  const pct = timer.total ? (timer.remaining/timer.total)*100 : 0;
+  el.appendChild(h('div',{className:'rest-timer-bar'},h('div',{className:'rest-timer-fill',style:{width:pct+'%'}})));
+  el.appendChild(h('span',{className:'rest-timer-text'},`Rest  ${Math.floor(timer.remaining/60)}:${String(timer.remaining%60).padStart(2,'0')}`));
+  el.appendChild(h('button',{className:'rest-timer-add',onClick:()=>{ timer.remaining+=15; timer.total+=15; drawTimer(); }},'+15'));
+  el.appendChild(h('button',{className:'rest-timer-x',onClick:()=>stopTimer(false)},'✕'));
 }
 
+/* ---------------- Render ---------------- */
 let noteTimer = null;
 
 function render() {
   if(noteTimer) { clearTimeout(noteTimer); noteTimer = null; }
-  _dataCache = null;
   const savedScroll = window.scrollY;
-  const weekChanged = state.week !== lastRenderedWeek;
-  lastRenderedWeek = state.week;
+  const weekChanged = state.week !== state.lastRenderedWeek;
+  state.lastRenderedWeek = state.week;
   const app = document.getElementById('app');
   app.innerHTML = '';
 
-  const wk = ALL_WEEKS[state.week];
-  const phase = getPhase(wk.week);
-  const weekDone = getWeekDone(state.week);
-  const totalDone = getTotalDone();
-  const totalWorkouts = 17*7;
-  const pct = Math.round((totalDone/totalWorkouts)*100);
+  const wNum = state.week + 1;
+  const wk = buildWeek(wNum);
+  const block = wk.block;
+  const weekDone = weekKeyDone(wNum);
+  const totalDone = totalKeyDone();
+  const totalSessions = WEEKS*4;
+  const pct = Math.round((totalDone/totalSessions)*100);
+  const units = store.settings.units;
 
   // Header
+  const cycleStart = startDate(), cycleEnd = addDays(cycleStart, WEEKS*7-1);
   app.appendChild(h('div',{className:'header'},
-    h('div',{className:'header-label'},'Apr 6 → Aug 1 · 17 Weeks'),
+    h('div',{className:'header-label'},`${fmt(cycleStart)} → ${fmt(cycleEnd)} · ${WEEKS} Weeks · Cycle ${store.settings.cycle}`),
     h('h1',null,'MySpeckTrainer'),
-    h('div',{className:'header-sub'},'Run · Swim · Bodyweight · Volleyball'),
+    h('div',{className:'header-sub'},P.meta.tagline),
   ));
 
   // Overall progress
@@ -253,252 +231,101 @@ function render() {
   const dashoffset = circumference - (pct/100)*circumference;
   app.appendChild(h('div',{className:'overall'},
     h('div',{className:'overall-box'},
-      h('div',{className:'overall-ring',innerHTML:`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4"/><circle class="progress-circle" cx="28" cy="28" r="22" fill="none" stroke="${phase.color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${dashoffset}"/></svg><div class="overall-ring-text">${pct}%</div>`}),
+      h('div',{className:'overall-ring',innerHTML:`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="4"/><circle class="progress-circle" cx="28" cy="28" r="22" fill="none" stroke="${block.color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${dashoffset}"/></svg><div class="overall-ring-text">${pct}%</div>`}),
       h('div',{className:'overall-info'},
-        h('div',{className:'overall-label'},'Program Progress'),
-        h('div',{className:'overall-detail'},`${totalDone} of ${totalWorkouts} sessions completed`),
+        h('div',{className:'overall-label'},'Cycle Progress'),
+        h('div',{className:'overall-detail'},`${totalDone} of ${totalSessions} sessions · 3 lifts + 1 cardio per week`),
+        h('div',{className:'overall-goal'},P.meta.goal),
       ),
     ),
   ));
 
-  // Phase bar
+  // Block bar
   const pbar = h('div',{className:'phase-bar',style:{marginTop:'16px'}});
-  PHASES.forEach(p => {
+  P.blocks.forEach(b => {
     const seg = h('div',{className:'phase-bar-seg'});
-    seg.style.flex = p.weeks.length;
-    seg.style.background = p.weeks.includes(wk.week) ? p.color : p.color+'33';
+    seg.style.flex = b.weeks.length;
+    seg.style.background = b.weeks.includes(wNum) ? b.color : b.color+'33';
     pbar.appendChild(seg);
   });
   app.appendChild(pbar);
 
-  // Week selector with nav arrows
+  // Week selector
   const weekNavWrapper = h('div',{className:'week-nav-wrapper'});
   const prevBtn = h('button',{className:'week-nav-btn',onClick:()=>{if(state.week>0){state.week--;state.expanded=null;render();}}}, '‹');
   if(state.week===0) prevBtn.disabled=true;
-  const nextBtn = h('button',{className:'week-nav-btn',onClick:()=>{if(state.week<16){state.week++;state.expanded=null;render();}}}, '›');
-  if(state.week===16) nextBtn.disabled=true;
+  const nextBtn = h('button',{className:'week-nav-btn',onClick:()=>{if(state.week<WEEKS-1){state.week++;state.expanded=null;render();}}}, '›');
+  if(state.week===WEEKS-1) nextBtn.disabled=true;
   const weeks = h('div',{className:'weeks'});
-  ALL_WEEKS.forEach((w,i) => {
-    const p = getPhase(w.week);
-    const isCurr = w.week === todayWeekIdx+1;
-    const btn = h('button',{className:`week-btn${state.week===i?' active':''}${isCurr&&state.week!==i?' current':''}`,onClick:()=>{state.week=i;state.expanded=null;render();}},String(w.week));
-    if(state.week===i) { btn.style.background=p.color; btn.style.color='#fff'; btn.style.border='none'; }
-    else if(isCurr) { btn.style.borderColor=p.color; btn.style.color=p.color; }
+  for(let i=0;i<WEEKS;i++) {
+    const b = getBlock(i+1);
+    const isCurr = i === todayWeekIdx;
+    const btn = h('button',{className:`week-btn${state.week===i?' active':''}${isCurr&&state.week!==i?' current':''}`,onClick:()=>{state.week=i;state.expanded=null;render();}},String(i+1));
+    if(state.week===i) { btn.style.background=b.color; btn.style.color='#fff'; }
+    else if(isCurr) { btn.style.boxShadow=`inset 0 0 0 1.5px ${b.color}`; btn.style.color=b.color; }
     weeks.appendChild(btn);
-  });
-  weekNavWrapper.appendChild(prevBtn);
-  weekNavWrapper.appendChild(weeks);
-  weekNavWrapper.appendChild(nextBtn);
+  }
+  weekNavWrapper.appendChild(prevBtn); weekNavWrapper.appendChild(weeks); weekNavWrapper.appendChild(nextBtn);
   app.appendChild(weekNavWrapper);
 
   // Week header
-  const whBox = h('div',{className:'week-header-box',style:{background:`linear-gradient(135deg,${phase.color}18,${phase.color}06)`,border:`1px solid ${phase.color}33`}},
+  const sets = setsFor(wNum);
+  const whBox = h('div',{className:'week-header-box',style:{background:`linear-gradient(135deg,${block.color}18,${block.color}06)`,border:`1px solid ${block.color}33`}},
     h('div',{className:'week-header-top'},
-      h('span',{className:'week-header-num'},`Week ${wk.week}`),
+      h('span',{className:'week-header-num'},`Week ${wNum}`),
       h('div',{className:'week-header-meta'},
-        h('span',{className:'week-header-date'},wk.startDate),
-        h('span',{className:'week-header-phase',style:{color:phase.color,background:phase.color+'18'}},phase.name),
+        h('span',{className:'week-header-date'},`${wk.startDate} – ${wk.endDate}`),
+        h('span',{className:'week-header-phase',style:{color:block.color,background:block.color+'18'}},block.name),
       ),
     ),
-    h('div',{className:'week-header-focus'},wk.focus),
+    h('div',{className:'week-header-focus'},block.focus),
+    h('div',{className:'week-rx'},
+      h('span',{className:'rx-chip'},`${sets} sets`),
+      h('span',{className:'rx-chip'},`${block.reps} reps`),
+      h('span',{className:'rx-chip'},`RPE ${block.rpe}`),
+      h('span',{className:'rx-chip'},`Rest ${block.rest}`),
+    ),
     h('div',{className:'week-progress'},
-      h('div',{className:'week-progress-bar'},h('div',{className:'week-progress-fill',style:{width:`${Math.round(weekDone/7*100)}%`,background:phase.color}})),
-      h('span',{className:'week-progress-text'},`${weekDone}/7`),
+      h('div',{className:'week-progress-bar'},h('div',{className:'week-progress-fill',style:{width:`${Math.round(weekDone/4*100)}%`,background:block.color}})),
+      h('span',{className:'week-progress-text'},`${weekDone}/4`),
     ),
   );
   app.appendChild(h('div',{className:'week-header'},whBox));
 
   // Days
-  const daysEl = h('div',{className:'days'});
   const daysGroup = h('div',{className:'days-group'});
-  wk.days.forEach((day,di) => {
-    const isExp = state.expanded===di;
-    const isDone = getDone(wk.week,di);
-    const isToday = state.week === todayWeekIdx && di === todayDayIdx && todayWeekIdx >= 0 && todayWeekIdx < 17;
-    const card = h('div',{className:`day-card${isExp?' expanded':''}${isDone?' completed':''}`});
-    if(isExp) { card.style.borderLeft=`3px solid ${day.color}`; }
+  wk.days.forEach((day, di) => daysGroup.appendChild(renderDay(wk, day, di, units)));
+  app.appendChild(h('div',{className:'days'},daysGroup));
 
-    const summary = h('div',{className:'day-summary'});
-    summary.appendChild(h('span',{className:'day-icon'},ICONS[day.type]||'⚪'));
-
-    const info = h('div',{className:'day-info'});
-    info.appendChild(h('div',{className:'day-top'},
-      h('span',{className:'day-name'},day.day+' ',h('span',{className:'day-date'},day.date), isToday ? h('span',{className:'today-badge',style:{color:phase.color,background:phase.color+'22'}},'TODAY') : null),
-      h('span',{className:'day-total'},day.total),
-    ));
-    info.appendChild(h('div',{className:'day-label',style:{color:day.color}},day.label));
-    info.addEventListener('click',()=>{state.expanded=isExp?null:di;render();});
-    summary.appendChild(info);
-
-    // Check button
-    const check = h('button',{className:`check-btn${isDone?' done':''}`,onClick:(e)=>{e.stopPropagation();if(!isDone&&navigator.vibrate)navigator.vibrate(30);setDone(wk.week,di,!isDone);render();}},isDone?'✓':'');
-    summary.appendChild(check);
-
-    const arrow = h('span',{className:`day-arrow${isExp?' open':''}`},'›');
-    arrow.addEventListener('click',()=>{state.expanded=isExp?null:di;render();});
-    summary.appendChild(arrow);
-
-    card.appendChild(summary);
-
-    if(isExp) {
-      const detail = h('div',{className:'day-detail'});
-      const segs = h('div',{className:'segments'});
-      day.segments.forEach(seg => {
-        const segEl = h('div',{className:`segment${seg.repeat?' repeat-seg':''}`});
-        if(seg.repeat) { const bar=h('div',{className:'repeat-bar'}); bar.style.background=day.color; segEl.appendChild(bar); }
-        if(seg.repeat) segEl.style.background=day.color+'06';
-        const content = h('div',{className:'seg-content'});
-        const top = h('div',{className:'seg-top'},h('span',{className:'seg-name'},seg.name));
-        const meta = h('div',{className:'seg-meta'});
-        if(seg.zone) { const z=h('span',{className:'seg-zone'}); z.style.color=day.color; z.style.background=day.color+'14'; z.textContent=seg.zone; meta.appendChild(z); }
-        meta.appendChild(h('span',{className:'seg-dur'},seg.dur));
-        top.appendChild(meta);
-        content.appendChild(top);
-        if(seg.note) content.appendChild(h('div',{className:'seg-note'},seg.note));
-        segEl.appendChild(content);
-        segs.appendChild(segEl);
-      });
-      detail.appendChild(segs);
-
-      // Inline detail boxes — rendered in segment order
-      const inlineDetails = [];
-      day.segments.forEach(seg => {
-        if(seg.name==='Swim' && !inlineDetails.some(d=>d.type==='swim')) {
-          const sw = getSwim(wk.week);
-          const swBox = h('div',{className:'inline-detail'});
-          swBox.appendChild(h('div',{className:'inline-detail-label'},'🏊 Swim Session'));
-          swBox.appendChild(h('div',{className:'inline-detail-title'},`${sw.dur} — ${sw.goal}`));
-          swBox.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},sw.desc));
-          inlineDetails.push({type:'swim',el:swBox});
-        }
-        if(seg.name==='Bodyweight' && !inlineDetails.some(d=>d.type==='bw')) {
-          const bw = getBW(wk.week);
-          const bwBox = h('div',{className:'inline-detail'});
-          bwBox.appendChild(h('div',{className:'inline-detail-label'},'💪 Bodyweight Circuit'));
-          bwBox.appendChild(h('div',{className:'inline-detail-title'},bw.label));
-          bw.exercises.forEach(ex => bwBox.appendChild(h('div',{className:'inline-detail-exercise'},ex)));
-          bwBox.appendChild(h('div',{className:'inline-detail-note'},bw.note));
-          inlineDetails.push({type:'bw',el:bwBox});
-        }
-      });
-      const watchItem = getWatchItem(day, wk.week);
-      if(watchItem) {
-        const watchBox = h('div',{className:'inline-detail'});
-        watchBox.appendChild(h('div',{className:'inline-detail-label'},'⌚ Watch App'));
-        watchBox.appendChild(h('div',{className:'inline-detail-title'},watchItem.n));
-        watchBox.appendChild(h('div',{className:'inline-detail-sub'},watchItem.s));
-        inlineDetails.push({type:'watch',el:watchBox});
-      }
-      inlineDetails.forEach(d => detail.appendChild(d.el));
-
-      // Notes
-      const noteVal = getNote(wk.week,di);
-      const notesArea = h('div',{className:'notes-area'});
-      const textarea = h('textarea',{className:'notes-input',placeholder:'Add notes — how it felt, pace, etc...'});
-      textarea.value = noteVal;
-      textarea.addEventListener('input',()=>{
-        if(noteTimer) clearTimeout(noteTimer);
-        noteTimer = setTimeout(()=>{
-          setNote(wk.week,di,textarea.value);
-          const saved = notesArea.querySelector('.notes-saved');
-          if(saved) saved.textContent = 'Saved ✓';
-          setTimeout(()=>{ if(saved) saved.textContent=''; },1500);
-        },500);
-      });
-      textarea.addEventListener('click',(e)=>e.stopPropagation());
-      notesArea.appendChild(textarea);
-      notesArea.appendChild(h('div',{className:'notes-saved'},''));
-      detail.appendChild(notesArea);
-
-      card.appendChild(detail);
+  // Cycle complete
+  if(state.week===WEEKS-1) {
+    const box = h('div',{className:'cycle-box'});
+    box.appendChild(h('div',{className:'cycle-title'},'End of the cycle'));
+    box.appendChild(h('div',{className:'cycle-text'},'Start the next 12 weeks with the weights you have now. Your lift history carries over, so week 1 of the new cycle picks up where week 12 left off.'));
+    if(state.cycleConfirm) {
+      box.appendChild(h('button',{className:'primary-btn',onClick:()=>{ startNextCycle(); }},`Tap again to start cycle ${store.settings.cycle+1}`));
+      box.appendChild(h('button',{className:'reset-btn',style:{marginLeft:'8px'},onClick:()=>{state.cycleConfirm=false;render();}},'Cancel'));
+    } else {
+      box.appendChild(h('button',{className:'primary-btn',onClick:()=>{state.cycleConfirm=true;render();}},`Start cycle ${store.settings.cycle+1}`));
     }
-    daysGroup.appendChild(card);
-  });
-  daysEl.appendChild(daysGroup);
-  app.appendChild(daysEl);
-
-  // Analytics Dashboard
-  const analyticsBox = h('div',{className:'analytics-box'});
-  analyticsBox.appendChild(h('div',{className:'analytics-title'},'Completion'));
-
-  // Calculate streaks
-  let currentStreak = 0, longestStreak = 0, tempStreak = 0, perfectWeeks = 0;
-
-  // Streak grid — 17 columns × 7 rows
-  const streakContainer = h('div',{className:'streak-container'});
-  const dayLabels = h('div',{className:'streak-day-labels'});
-  ['M','T','W','T','F','S','S'].forEach(d => dayLabels.appendChild(h('div',{className:'streak-day-label'},d)));
-  streakContainer.appendChild(dayLabels);
-
-  const grid = h('div',{className:'streak-grid'});
-  ALL_WEEKS.forEach((w,wi) => {
-    const p = getPhase(w.week);
-    const isCurr = wi === state.week;
-    const col = h('div',{className:`streak-col${isCurr?' current-week':''}`});
-    let weekComplete = 0;
-    w.days.forEach((_,di) => {
-      const done = getDone(w.week, di);
-      const cell = h('div',{className:`streak-cell${done?' done':''}`});
-      if(done) { weekComplete++; cell.style.background = p.color; }
-      col.appendChild(cell);
-      if(done) { tempStreak++; if(tempStreak>longestStreak) longestStreak=tempStreak; }
-      else { tempStreak=0; }
-    });
-    if(weekComplete===7) perfectWeeks++;
-    col.appendChild(h('div',{className:'streak-week'},String(w.week)));
-    grid.appendChild(col);
-  });
-
-  currentStreak = 0;
-  for(let i = daysSinceStart; i >= 0; i--) {
-    const wi = Math.floor(i/7), di = i%7;
-    if(wi<17 && getDone(ALL_WEEKS[wi].week, di)) currentStreak++; else break;
+    app.appendChild(box);
   }
 
-  streakContainer.appendChild(grid);
-  analyticsBox.appendChild(streakContainer);
-
-  // Stats row
-  const stats = h('div',{className:'streak-stats'});
-  [
-    {num: currentStreak, label: 'Current streak'},
-    {num: longestStreak, label: 'Longest streak'},
-    {num: perfectWeeks, label: 'Perfect weeks'},
-  ].forEach(s => {
-    const stat = h('div',{className:'streak-stat'});
-    const numEl = h('div',{className:'streak-stat-num'});
-    numEl.style.color = s.num > 0 ? 'var(--green)' : 'var(--text-faint)';
-    numEl.textContent = s.num;
-    stat.appendChild(numEl);
-    stat.appendChild(h('div',{className:'streak-stat-label'},s.label));
-    stats.appendChild(stat);
-  });
-  analyticsBox.appendChild(stats);
-
-  app.appendChild(h('div',{className:'analytics'},analyticsBox));
-
-  // HR Zones
-  const zonesBox = h('div',{className:'zones-box'},h('div',{className:'zones-title'},'Heart Rate Zones'));
-  HR_ZONES.forEach(z => {
-    zonesBox.appendChild(h('div',{className:'zone-row'},
-      h('span',{className:'zone-label',style:{color:z.c}},z.z),
-      h('span',{className:'zone-desc'},z.d),
-      h('span',{className:'zone-range'},z.r+' bpm'),
-    ));
-  });
-  app.appendChild(h('div',{className:'zones'},zonesBox));
+  app.appendChild(renderAnalytics());
+  app.appendChild(renderLifts(units));
+  app.appendChild(renderRules());
+  app.appendChild(renderSettings());
 
   // Reset
   const resetArea = h('div',{className:'reset-area'});
   if(state.resetConfirm) {
-    resetArea.appendChild(h('button',{className:'reset-btn reset-confirm',onClick:()=>{localStorage.removeItem(STORE_KEY);state.resetConfirm=false;render();}}, 'Tap again to confirm reset'));
+    resetArea.appendChild(h('button',{className:'reset-btn reset-confirm',onClick:()=>{localStorage.removeItem(STORE_KEY);store=loadStore();state.resetConfirm=false;state.settingsOpen=false;render();}}, 'Tap again to erase everything'));
     resetArea.appendChild(h('button',{className:'reset-btn',style:{marginLeft:'8px'},onClick:()=>{state.resetConfirm=false;render();}}, 'Cancel'));
   } else {
     resetArea.appendChild(h('button',{className:'reset-btn',onClick:()=>{state.resetConfirm=true;render();}}, 'Reset all progress'));
   }
   app.appendChild(resetArea);
 
-  // Restore scroll position & scroll week button into view
   requestAnimationFrame(()=>{
     window.scrollTo(0, savedScroll);
     if(weekChanged) {
@@ -508,39 +335,366 @@ function render() {
   });
 }
 
+function startNextCycle() {
+  const endOfCycle = addDays(startDate(), WEEKS*7); // Monday after week 12
+  const t = new Date();
+  store.settings.startDate = iso(t >= endOfCycle ? mondayOf(t) : endOfCycle);
+  store.settings.cycle += 1;
+  saveStore();
+  state.cycleConfirm = false; state.week = 0; state.expanded = null;
+  computeToday();
+  render();
+}
+
+/* ---------------- Day card ---------------- */
+function renderDay(wk, day, di, units) {
+  const def = day.def;
+  const isExp = state.expanded===di;
+  const sess = getSession(day.key) || {};
+  const isDone = !!sess.done;
+  const isToday = state.week === todayWeekIdx && day.dow === todayDowIdx;
+  const isKey = day.kind !== 'rest';
+  const isLift = !!def.exercises;
+  const wNum = wk.week;
+  const est = isLift ? estimateMinutes(day.kind, wNum) : null;
+  const totalLabel = isLift ? `${P.meta.strengthMinutes} + ${P.meta.treadmillMinutes} min` : day.kind==='cardio' ? '30-40 min' : 'Walk';
+
+  const card = h('div',{className:`day-card${isExp?' expanded':''}${isDone?' completed':''}${isKey?'':' rest-day'}`});
+  if(isExp) card.style.borderLeft = `3px solid ${def.color}`;
+
+  const summary = h('div',{className:'day-summary'});
+  summary.appendChild(h('span',{className:'day-icon'},def.icon));
+  const info = h('div',{className:'day-info'});
+  info.appendChild(h('div',{className:'day-top'},
+    h('span',{className:'day-name'},day.dowName+' ',h('span',{className:'day-date'},day.date), isToday ? h('span',{className:'today-badge',style:{color:wk.block.color,background:wk.block.color+'22'}},'TODAY') : null),
+    h('span',{className:'day-total'},totalLabel),
+  ));
+  info.appendChild(h('div',{className:'day-label',style:{color:def.color}}, def.name, def.muscles ? h('span',{className:'day-muscles'},' · '+def.muscles) : null));
+  info.addEventListener('click',()=>{state.expanded=isExp?null:di;render();});
+  summary.appendChild(info);
+
+  const check = h('button',{className:`check-btn${isDone?' done':''}${isKey?'':' small'}`,onClick:(e)=>{e.stopPropagation();if(!isDone&&navigator.vibrate)navigator.vibrate(30);setDone(day.key,!isDone);render();}},isDone?'✓':'');
+  summary.appendChild(check);
+  const arrow = h('span',{className:`day-arrow${isExp?' open':''}`},'›');
+  arrow.addEventListener('click',()=>{state.expanded=isExp?null:di;render();});
+  summary.appendChild(arrow);
+  card.appendChild(summary);
+
+  if(!isExp) return card;
+
+  const detail = h('div',{className:'day-detail'});
+  if(isLift) renderLiftDetail(detail, wk, day, sess, est, units);
+  else if(day.kind==='cardio') renderCardioDetail(detail, day, sess);
+  else detail.appendChild(h('div',{className:'inline-detail'},h('div',{className:'inline-detail-label'},'⚪ Recovery'),h('div',{className:'inline-detail-note',style:{fontStyle:'normal',marginTop:0}},def.note)));
+
+  // Notes
+  const notesArea = h('div',{className:'notes-area'});
+  const textarea = h('textarea',{className:'notes-input',placeholder: isLift ? 'Notes — how it felt, what to change next time...' : 'Notes...'});
+  textarea.value = sess.note || '';
+  textarea.addEventListener('input',()=>{
+    if(noteTimer) clearTimeout(noteTimer);
+    noteTimer = setTimeout(()=>{
+      setNote(day.key, textarea.value);
+      const saved = notesArea.querySelector('.notes-saved');
+      if(saved) { saved.textContent = 'Saved ✓'; setTimeout(()=>{ saved.textContent=''; },1500); }
+    },500);
+  });
+  notesArea.appendChild(textarea);
+  notesArea.appendChild(h('div',{className:'notes-saved'},''));
+  detail.appendChild(notesArea);
+
+  if(isKey) {
+    detail.appendChild(h('button',{className:`complete-btn${isDone?' undone':''}`,style: isDone?null:{background:def.color},onClick:()=>{ if(!isDone&&navigator.vibrate)navigator.vibrate(30); setDone(day.key,!isDone); render(); }}, isDone ? '✓ Completed — tap to undo' : 'Mark session complete'));
+  }
+  card.appendChild(detail);
+  return card;
+}
+
+function renderLiftDetail(detail, wk, day, sess, est, units) {
+  const def = day.def, wNum = wk.week, block = wk.block;
+  const sets = setsFor(wNum);
+
+  // Time plan
+  const plan = h('div',{className:'time-plan'});
+  [
+    {l:'Warm-up', m:est.warm, c:'#8e8e93'},
+    {l:'Lifts', m:est.lift, c:def.color},
+    {l:'Core', m:est.core, c:'#bf5af2'},
+    {l:'Treadmill', m:P.meta.treadmillMinutes, c:'#F77F00'},
+  ].forEach(s => plan.appendChild(h('div',{className:'time-seg',style:{flex:Math.max(s.m,10),background:s.c+'22',color:s.c}},h('span',{className:'time-seg-l'},s.l),h('span',{className:'time-seg-m'},`${s.m}m`))));
+  detail.appendChild(plan);
+  detail.appendChild(h('div',{className:'time-plan-note'},`~${est.total} min in the gym, then ${P.meta.treadmillMinutes} min treadmill. Budget: ${P.meta.strengthMinutes} + ${P.meta.treadmillMinutes}.`));
+
+  // Warm-up
+  const wu = h('div',{className:'inline-detail'});
+  wu.appendChild(h('div',{className:'inline-detail-label'},`🔥 Warm-up · ${P.meta.warmupMinutes} min`));
+  P.warmup.forEach(x => wu.appendChild(h('div',{className:'mini-row'},h('span',{className:'mini-name'},x.name),h('span',{className:'mini-dur'},x.dur))));
+  detail.appendChild(wu);
+
+  // Rest timer controls
+  const tbar = h('div',{className:'timer-bar'});
+  tbar.appendChild(h('span',{className:'timer-label'},`Rest ${block.rest}`));
+  [60,75,90].forEach(s => tbar.appendChild(h('button',{className:'timer-btn',onClick:(e)=>{e.stopPropagation();startTimer(s);}},`${s}s`)));
+  detail.appendChild(tbar);
+
+  // Exercises
+  def.exercises.forEach((ex, i) => {
+    const reps = repsFor(ex, wNum);
+    const last = lastLog(day.kind, ex.id, store.settings.cycle, wNum);
+    const hint = progressionHint(ex, last, wNum);
+    const logged = (sess.sets && sess.sets[ex.id]) || [];
+    const exEl = h('div',{className:'exercise'});
+    exEl.appendChild(h('div',{className:'ex-top'},
+      h('div',{className:'ex-title'},h('span',{className:'ex-num',style:{background:def.color}},String(i+1)),h('span',{className:'ex-name'},ex.name)),
+      h('div',{className:'ex-meta'},h('span',{className:'ex-equip'},ex.equip),h('span',{className:'ex-target'},`${sets} × ${reps}${ex.perSide?' / side':''}`)),
+    ));
+    exEl.appendChild(h('div',{className:'ex-cue'},ex.cue));
+    if(ex.spine) exEl.appendChild(h('div',{className:'ex-spine'},'🦴 '+ex.spine));
+    exEl.appendChild(h('div',{className:`ex-hint ${hint.kind}`},
+      last ? h('span',{className:'ex-last'},`Last (wk ${last.week}${last.cycle!==store.settings.cycle?', cycle '+last.cycle:''}): ${fmtSets(last.sets, units)}`) : null,
+      h('span',{className:'ex-hint-text'},hint.text),
+    ));
+
+    const grid = h('div',{className:'set-grid'});
+    const lastW = last ? last.sets.map(s=>s.w).filter(x=>x!=null) : [];
+    for(let si=0; si<sets; si++) {
+      const row = h('div',{className:'set-row'});
+      row.appendChild(h('span',{className:'set-n'},`Set ${si+1}`));
+      const wIn = h('input',{className:'set-in',type:'number',inputmode:'decimal',step:'0.5',min:'0',placeholder: lastW.length ? String(lastW[Math.min(si,lastW.length-1)]) : '–'});
+      if(logged[si]?.w!=null) wIn.value = logged[si].w;
+      wIn.addEventListener('input',()=>setSetField(day.key, ex.id, si, 'w', wIn.value));
+      const rIn = h('input',{className:'set-in',type:'number',inputmode:'numeric',step:'1',min:'0',placeholder: last?.sets[si]?.r!=null ? String(last.sets[si].r) : repRange(reps).lo});
+      if(logged[si]?.r!=null) rIn.value = logged[si].r;
+      rIn.addEventListener('input',()=>setSetField(day.key, ex.id, si, 'r', rIn.value));
+      row.appendChild(wIn); row.appendChild(h('span',{className:'set-x'},units)); row.appendChild(rIn); row.appendChild(h('span',{className:'set-x'},'reps'));
+      grid.appendChild(row);
+    }
+    exEl.appendChild(grid);
+    exEl.appendChild(h('div',{className:'ex-alt'},'Swap: '+ex.alt));
+    detail.appendChild(exEl);
+  });
+
+  // Core finisher
+  const core = h('div',{className:'inline-detail'});
+  core.appendChild(h('div',{className:'inline-detail-label'},`🧱 Core finisher · ${P.meta.coreMinutes} min`));
+  def.core.forEach(c => core.appendChild(h('div',{className:'mini-row col'},h('div',{className:'mini-top'},h('span',{className:'mini-name'},c.name),h('span',{className:'mini-dur'},c.target)),h('div',{className:'mini-note'},c.cue))));
+  detail.appendChild(core);
+
+  // Treadmill
+  const tm = h('div',{className:'inline-detail treadmill'});
+  tm.appendChild(h('div',{className:'inline-detail-label'},`🏃 ${def.treadmill.name} · ${def.treadmill.dur}`));
+  tm.appendChild(h('div',{className:'inline-detail-title'},def.treadmill.style));
+  tm.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},def.treadmill.note));
+  detail.appendChild(tm);
+}
+
+function renderCardioDetail(detail, day, sess) {
+  const def = day.def;
+  const box = h('div',{className:'inline-detail'});
+  box.appendChild(h('div',{className:'inline-detail-label'},'🏃 Pick one · 20-30 min'));
+  def.options.forEach(o => {
+    const sel = sess.choice === o.id;
+    const row = h('div',{className:`option-row${sel?' selected':''}`,onClick:()=>{ setChoice(day.key, sel?null:o.id); render(); }},
+      h('span',{className:'option-radio',style: sel?{background:def.color,borderColor:def.color}:null}, sel?'✓':''),
+      h('div',{className:'option-body'},h('div',{className:'mini-top'},h('span',{className:'mini-name'},o.name),h('span',{className:'mini-dur'},o.dur)),h('div',{className:'mini-note'},o.note)),
+    );
+    box.appendChild(row);
+  });
+  detail.appendChild(box);
+  const core = h('div',{className:'inline-detail'});
+  core.appendChild(h('div',{className:'inline-detail-label'},`🧱 Then core · ${def.core.dur}`));
+  core.appendChild(h('div',{className:'inline-detail-title'},def.core.name));
+  core.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},def.core.note));
+  detail.appendChild(core);
+  const cd = h('div',{className:'inline-detail'});
+  cd.appendChild(h('div',{className:'inline-detail-label'},`🧘 Optional · ${def.cooldown.dur}`));
+  cd.appendChild(h('div',{className:'inline-detail-title'},def.cooldown.name));
+  cd.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},def.cooldown.note));
+  detail.appendChild(cd);
+}
+
+/* ---------------- Analytics ---------------- */
+function renderAnalytics() {
+  const box = h('div',{className:'analytics-box'});
+  box.appendChild(h('div',{className:'analytics-title'},'Consistency'));
+  const container = h('div',{className:'streak-container'});
+  const labels = h('div',{className:'streak-day-labels'});
+  KEY_KINDS.forEach(k => labels.appendChild(h('div',{className:'streak-day-label',style:{color:P.days[k].color}},KIND_ABBR[k])));
+  container.appendChild(labels);
+  const grid = h('div',{className:'streak-grid',style:{gridTemplateColumns:`repeat(${WEEKS}, 1fr)`}});
+  let perfectWeeks = 0, weekStreak = 0, longestWeekStreak = 0, run = 0;
+  for(let w=1; w<=WEEKS; w++) {
+    const wk = buildWeek(w);
+    const col = h('div',{className:`streak-col${state.week===w-1?' current-week':''}`});
+    let n = 0;
+    KEY_KINDS.forEach(k => {
+      const d = wk.days.find(x=>x.kind===k);
+      const done = d ? !!getSession(d.key)?.done : false;
+      const cell = h('div',{className:`streak-cell${done?' done':''}`});
+      if(done) { n++; cell.style.background = P.days[k].color; }
+      col.appendChild(cell);
+    });
+    if(n===4) { perfectWeeks++; run++; if(run>longestWeekStreak) longestWeekStreak=run; } else run = 0;
+    col.appendChild(h('div',{className:'streak-week'},String(w)));
+    grid.appendChild(col);
+  }
+  // current streak: consecutive perfect weeks ending at the last completed week
+  const lastFull = Math.min(WEEKS, todayWeekIdx); // weeks strictly before this one
+  for(let w=lastFull; w>=1; w--) { if(weekKeyDone(w)===4) weekStreak++; else break; }
+  if(todayWeekIdx>=0 && todayWeekIdx<WEEKS && weekKeyDone(todayWeekIdx+1)===4) weekStreak++;
+  container.appendChild(grid);
+  box.appendChild(container);
+  const stats = h('div',{className:'streak-stats'});
+  [{num:totalKeyDone(),label:'Sessions'},{num:weekStreak,label:'Week streak'},{num:perfectWeeks,label:'Perfect weeks'}].forEach(s => {
+    const numEl = h('div',{className:'streak-stat-num'}); numEl.style.color = s.num>0?'var(--green)':'var(--text-faint)'; numEl.textContent = s.num;
+    stats.appendChild(h('div',{className:'streak-stat'},numEl,h('div',{className:'streak-stat-label'},s.label)));
+  });
+  box.appendChild(stats);
+  return h('div',{className:'analytics'},box);
+}
+
+function renderLifts(units) {
+  const box = h('div',{className:'zones-box'});
+  box.appendChild(h('div',{className:'zones-title'},'Your lifts'));
+  let any = false;
+  ["push","legs","pull"].forEach(kind => {
+    P.days[kind].exercises.forEach(ex => {
+      const logs = exerciseLogs(kind, ex.id);
+      if(!logs.length) return;
+      any = true;
+      const first = logs[0], latest = logs[logs.length-1];
+      const maxW = l => { const ws = l.sets.map(s=>s.w).filter(x=>x!=null); return ws.length?Math.max(...ws):null; };
+      const fw = maxW(first), lw = maxW(latest);
+      const delta = (fw!=null && lw!=null) ? lw-fw : null;
+      const bestR = latest.sets.map(s=>s.r).filter(x=>x!=null);
+      box.appendChild(h('div',{className:'lift-row'},
+        h('div',{className:'lift-name'},h('span',{className:'lift-dot',style:{background:P.days[kind].color}}),ex.name),
+        h('div',{className:'lift-now'},lw!=null?`${lw} ${units}`:'—', bestR.length?h('span',{className:'lift-reps'},` × ${Math.max(...bestR)}`):null),
+        h('div',{className:`lift-delta${delta>0?' up':''}`}, delta==null||logs.length<2 ? `${logs.length} log${logs.length===1?'':'s'}` : delta>0?`+${delta} ${units}`:delta<0?`${delta} ${units}`:'same'),
+      ));
+    });
+  });
+  if(!any) box.appendChild(h('div',{className:'lift-empty'},'Log weight and reps in a session and your progress shows up here.'));
+  return h('div',{className:'zones'},box);
+}
+
+function renderRules() {
+  const wrap = h('div',{className:'zones'});
+  const box = h('div',{className:'zones-box'});
+  box.appendChild(h('div',{className:'zones-title'},'Spine-safe rules'));
+  P.spine.forEach((r,i) => box.appendChild(h('div',{className:'rule-row'},h('span',{className:'rule-n'},String(i+1)),h('span',{className:'rule-text'},r))));
+  box.appendChild(h('div',{className:'zones-title',style:{marginTop:'16px'}},'How to progress'));
+  P.progression.rules.forEach(r => box.appendChild(h('div',{className:'rule-row'},h('span',{className:'rule-n'},'↑'),h('span',{className:'rule-text'},r))));
+  box.appendChild(h('div',{className:'zones-title',style:{marginTop:'16px'}},'Treadmill effort'));
+  P.hrZones.forEach(z => box.appendChild(h('div',{className:'zone-row'},h('span',{className:'zone-label',style:{color:z.c}},z.z),h('span',{className:'zone-desc'},z.d),h('span',{className:'zone-range'},z.r+' bpm'))));
+  wrap.appendChild(box);
+  return wrap;
+}
+
+/* ---------------- Settings ---------------- */
+function renderSettings() {
+  const wrap = h('div',{className:'zones'});
+  const box = h('div',{className:'zones-box'});
+  const s = store.settings;
+  const head = h('div',{className:'settings-head',onClick:()=>{state.settingsOpen=!state.settingsOpen;render();}},
+    h('div',{className:'zones-title',style:{marginBottom:0}},'Schedule & settings'),
+    h('span',{className:'settings-sum'},`${s.gymDays.map(d=>DOW[d]).join(' · ')} + ${DOW[s.floatDay]}`),
+    h('span',{className:`day-arrow${state.settingsOpen?' open':''}`},'›'),
+  );
+  box.appendChild(head);
+  if(state.settingsOpen) {
+    const body = h('div',{className:'settings-body'});
+    body.appendChild(h('div',{className:'settings-label'},'Office gym days (pick 3, Mon–Fri) — Push, Legs, Pull in that order'));
+    const gymRow = h('div',{className:'chip-row'});
+    for(let d=0; d<7; d++) {
+      const on = s.gymDays.includes(d);
+      const disabled = d>4;
+      const chip = h('button',{className:`chip${on?' on':''}`,disabled:disabled?'true':null,onClick:()=>{
+        if(on) { if(s.gymDays.length>1) s.gymDays = s.gymDays.filter(x=>x!==d); }
+        else { s.gymDays = [...s.gymDays, d].sort((a,b)=>a-b); if(s.gymDays.length>3) s.gymDays = s.gymDays.slice(-3); }
+        saveStore(); render();
+      }},DOW[d]);
+      if(on) { const gi = s.gymDays.indexOf(d); chip.style.background = P.days[["push","legs","pull"][gi]]?.color || 'var(--green)'; }
+      gymRow.appendChild(chip);
+    }
+    body.appendChild(gymRow);
+    body.appendChild(h('div',{className:'settings-label'},'Home cardio + core day'));
+    const floatRow = h('div',{className:'chip-row'});
+    for(let d=0; d<7; d++) {
+      const on = s.floatDay===d;
+      const chip = h('button',{className:`chip${on?' on':''}`,onClick:()=>{ s.floatDay=d; saveStore(); render(); }},DOW[d]);
+      if(on) chip.style.background = P.days.cardio.color;
+      if(s.gymDays.includes(d)) chip.style.opacity = '0.4';
+      floatRow.appendChild(chip);
+    }
+    body.appendChild(floatRow);
+    body.appendChild(h('div',{className:'settings-note'},'Completion is tracked per session, not per date — if you go in on a different day one week, just log it on the card.'));
+
+    body.appendChild(h('div',{className:'settings-label'},'Units'));
+    const uRow = h('div',{className:'chip-row'});
+    ['lb','kg'].forEach(u => { const chip = h('button',{className:`chip${s.units===u?' on':''}`,onClick:()=>{ s.units=u; saveStore(); render(); }},u); if(s.units===u) chip.style.background='var(--blue)'; uRow.appendChild(chip); });
+    body.appendChild(uRow);
+
+    body.appendChild(h('div',{className:'settings-label'},'Cycle start (a Monday)'));
+    const dateIn = h('input',{className:'date-in',type:'date',value:s.startDate});
+    dateIn.addEventListener('change',()=>{ if(!dateIn.value) return; s.startDate = iso(mondayOf(parseISO(dateIn.value))); saveStore(); computeToday(); state.week = (todayWeekIdx>=0&&todayWeekIdx<WEEKS)?todayWeekIdx:0; render(); });
+    body.appendChild(dateIn);
+    box.appendChild(body);
+  }
+  wrap.appendChild(box);
+  return wrap;
+}
+
+/* ---------------- Boot ---------------- */
+function computeToday() {
+  today = new Date();
+  const daysSinceStart = Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate()) - startDate()) / MS_PER_DAY);
+  todayWeekIdx = Math.floor(daysSinceStart / 7);
+  todayDowIdx = ((daysSinceStart % 7) + 7) % 7;
+}
+
 async function boot() {
   try {
-    await fetchJsonData();
+    P = await fetch('data/program.json').then(r => r.json());
   } catch(e) {
-    document.getElementById('app').textContent = 'Failed to load training data. Please reload.';
+    document.getElementById('app').textContent = 'Failed to load the program. Please reload.';
     return;
   }
-  ALL_WEEKS = Array.from({length:17},(_,i)=>buildWeek(i+1));
+  WEEKS = P.meta.weeks;
+  store = loadStore();
+  saveStore();
+  state = { week:0, expanded:null, resetConfirm:false, cycleConfirm:false, settingsOpen:false, lastRenderedWeek:-1 };
+  computeToday();
+  if(todayWeekIdx>=0 && todayWeekIdx<WEEKS) state.week = todayWeekIdx;
+  else if(todayWeekIdx>=WEEKS) state.week = WEEKS-1;
 
-  state = { week:0, expanded:null, resetConfirm:false };
-  now = new Date();
-  const MS_PER_DAY = 24*60*60*1000;
-  daysSinceStart = Math.floor((now - START) / MS_PER_DAY);
-  todayWeekIdx = Math.floor(daysSinceStart / 7);
-  todayDayIdx = daysSinceStart % 7;
-  if(todayWeekIdx>=0 && todayWeekIdx<17) state.week = todayWeekIdx;
-  lastRenderedWeek = -1;
+  if(!document.getElementById('rest-timer')) {
+    const t = h('div',{id:'rest-timer',className:'rest-timer'});
+    document.body.appendChild(t);
+  }
 
-  // Swipe to change week
-  let touchStartX=0, touchStartY=0;
-  document.getElementById('app').addEventListener('touchstart', e=>{
+  // Swipe to change week (ignore swipes that start on inputs)
+  let touchStartX=0, touchStartY=0, touchOnInput=false;
+  const app = document.getElementById('app');
+  app.addEventListener('touchstart', e=>{
     touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY;
+    touchOnInput = ['INPUT','TEXTAREA'].includes(e.target.tagName);
   },{passive:true});
-  document.getElementById('app').addEventListener('touchend', e=>{
+  app.addEventListener('touchend', e=>{
+    if(touchOnInput) return;
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
-      if(dx<0 && state.week<16){state.week++;state.expanded=null;render();}
+      if(dx<0 && state.week<WEEKS-1){state.week++;state.expanded=null;render();}
       else if(dx>0 && state.week>0){state.week--;state.expanded=null;render();}
     }
   },{passive:true});
 
   render();
+
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
 }
 
 boot();
