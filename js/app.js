@@ -84,12 +84,43 @@ function buildWeek(w) {
   return { week:w, block:getBlock(w), startDate:fmt(ws), endDate:fmt(addDays(ws,6)), days };
 }
 
-function estimateMinutes(kind, w) {
+const blockIndex = w => Math.max(0, P.blocks.indexOf(getBlock(w)));
+// The variant a slot uses in week w (rotates per block; anchors have one variant)
+function variantFor(slot, w) { return slot.variants[blockIndex(w) % slot.variants.length]; }
+// Resolved exercise list for a lift day in week w, honoring per-session swaps
+function exercisesFor(kind, w, sess) {
+  const def = P.days[kind];
+  if(!def || !def.exercises) return [];
+  return def.exercises.map(slot => {
+    const v = variantFor(slot, w);
+    const swapped = !!(sess && sess.swaps && sess.swaps[slot.slot]);
+    const ex = swapped ? Object.assign({}, v.alt) : Object.assign({}, v);
+    ex.slot = slot.slot; ex.anchor = !!slot.anchor; ex.swapped = swapped;
+    ex.altName = swapped ? v.name : v.alt.name;
+    ex.newThisBlock = !swapped && !slot.anchor && w > 1 && blockIndex(w) !== blockIndex(w-1) && variantFor(slot, w-1).id !== v.id;
+    return ex;
+  });
+}
+function coreFor(kind, w) { const c = P.days[kind].core; return Array.isArray(c[0]) ? c[blockIndex(w) % c.length] : c; }
+// Treadmill session rotates through every lift workout: 3 per week, so the pattern shifts each week
+function treadmillFor(kind, w) {
+  const order = ["push","legs","pull"].indexOf(kind);
+  return P.treadmill[(((w-1)*3 + order) % P.treadmill.length + P.treadmill.length) % P.treadmill.length];
+}
+function setSwap(key, slot, v) { const s = touchSession(key); if(!s.swaps) s.swaps = {}; if(v) s.swaps[slot] = true; else delete s.swaps[slot]; saveStore(); }
+// Every exercise id that can appear on a day (variants + alternatives), deduped, in program order
+function allExercisesFor(kind) {
+  const seen = new Set(), out = [];
+  (P.days[kind].exercises||[]).forEach(slot => slot.variants.forEach(v => [v, v.alt].forEach(e => { if(e && !seen.has(e.id)) { seen.add(e.id); out.push(Object.assign({anchor:!!slot.anchor}, e)); } })));
+  return out;
+}
+
+function estimateMinutes(kind, w, sess) {
   const def = P.days[kind];
   if(!def || !def.exercises) return null;
   const sets = setsFor(w);
   let lift = 0;
-  def.exercises.forEach(ex => { lift += sets * (ex.perSide ? 2 : 1.5); });
+  exercisesFor(kind, w, sess).forEach(ex => { lift += sets * (ex.perSide ? 2 : 1.5); });
   return { warm:P.meta.warmupMinutes, lift:Math.round(lift), core:P.meta.coreMinutes, total:Math.round(P.meta.warmupMinutes+lift+P.meta.coreMinutes) };
 }
 
@@ -296,6 +327,7 @@ function render() {
       ),
     ),
     h('div',{className:'week-header-focus'},block.focus),
+    h('div',{className:'week-variants'}, ["push","legs","pull"].map(k => h('span',{className:'wv'}, h('span',{className:'wv-k',style:{color:P.days[k].color}}, `${P.days[k].name} `), exercisesFor(k, wNum, null).map(e=>e.name.replace(/ \(.*\)$/,'')).join(' · ')))),
     h('div',{className:'week-rx'},
       h('span',{className:'rx-chip'},`${sets} sets`),
       h('span',{className:'rx-chip'},`${block.reps} reps`),
@@ -373,7 +405,7 @@ function renderDay(wk, day, di, units) {
   const isKey = day.kind !== 'rest';
   const isLift = !!def.exercises;
   const wNum = wk.week;
-  const est = isLift ? estimateMinutes(day.kind, wNum) : null;
+  const est = isLift ? estimateMinutes(day.kind, wNum, sess) : null;
   const totalLabel = isLift ? `${P.meta.strengthMinutes} + ${P.meta.treadmillMinutes} min` : day.kind==='cardio' ? '30-40 min' : 'Walk';
 
   const card = h('div',{className:`day-card${isExp?' expanded':''}${isDone?' completed':''}${isKey?'':' rest-day'}`});
@@ -454,15 +486,15 @@ function renderLiftDetail(detail, wk, day, sess, est, units) {
   [60,75,90].forEach(s => tbar.appendChild(h('button',{className:'timer-btn',onClick:(e)=>{e.stopPropagation();startTimer(s);}},`${s}s`)));
   detail.appendChild(tbar);
 
-  // Exercises
-  def.exercises.forEach((ex, i) => {
+  // Exercises (this block's variants, with any per-session swaps applied)
+  exercisesFor(day.kind, wNum, sess).forEach((ex, i) => {
     const reps = repsFor(ex, wNum);
     const last = lastLog(day.kind, ex.id, store.settings.cycle, wNum);
     const sg = suggestNext(ex, last, wNum);
     const logged = (sess.sets && sess.sets[ex.id]) || [];
     const exEl = h('div',{className:'exercise'});
     exEl.appendChild(h('div',{className:'ex-top'},
-      h('div',{className:'ex-title'},h('span',{className:'ex-num',style:{background:def.color}},String(i+1)),h('span',{className:'ex-name'},ex.name)),
+      h('div',{className:'ex-title'},h('span',{className:'ex-num',style:{background:def.color}},String(i+1)),h('span',{className:'ex-name'},ex.name, ex.anchor ? h('span',{className:'ex-tag anchor',title:'Anchor lift — same all cycle'},'★') : null, ex.newThisBlock ? h('span',{className:'ex-tag new'},'NEW') : null, ex.swapped ? h('span',{className:'ex-tag swap'},'SWAP') : null)),
       h('div',{className:'ex-meta'},h('span',{className:'ex-equip'},ex.equip),h('span',{className:'ex-target'},`${sets} × ${reps}${ex.perSide?' / side':''}`)),
     ));
     exEl.appendChild(h('div',{className:'ex-cue'},ex.cue));
@@ -503,21 +535,26 @@ function renderLiftDetail(detail, wk, day, sess, est, units) {
       grid.appendChild(row);
     }
     exEl.appendChild(grid);
-    exEl.appendChild(h('div',{className:'ex-alt'},'Swap: '+ex.alt));
+    exEl.appendChild(h('div',{className:'ex-alt-row'},
+      h('span',{className:'ex-alt'}, ex.swapped ? `Swapped in for ${ex.altName}` : `Alt: ${ex.altName}`),
+      h('button',{className:'swap-btn',onClick:(e)=>{ e.stopPropagation(); setSwap(day.key, ex.slot, !ex.swapped); render(); }}, ex.swapped ? '↩ Undo swap' : '⇄ Swap'),
+    ));
     detail.appendChild(exEl);
   });
 
   // Core finisher
   const core = h('div',{className:'inline-detail'});
   core.appendChild(h('div',{className:'inline-detail-label'},`🧱 Core finisher · ${P.meta.coreMinutes} min`));
-  def.core.forEach(c => core.appendChild(h('div',{className:'mini-row col'},h('div',{className:'mini-top'},h('span',{className:'mini-name'},c.name),h('span',{className:'mini-dur'},c.target)),h('div',{className:'mini-note'},c.cue))));
+  coreFor(day.kind, wNum).forEach(c => core.appendChild(h('div',{className:'mini-row col'},h('div',{className:'mini-top'},h('span',{className:'mini-name'},c.name),h('span',{className:'mini-dur'},c.target)),h('div',{className:'mini-note'},c.cue))));
   detail.appendChild(core);
 
   // Treadmill
   const tm = h('div',{className:'inline-detail treadmill'});
-  tm.appendChild(h('div',{className:'inline-detail-label'},`🏃 ${def.treadmill.name} · ${def.treadmill.dur}`));
-  tm.appendChild(h('div',{className:'inline-detail-title'},def.treadmill.style));
-  tm.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},def.treadmill.note));
+  const tr = treadmillFor(day.kind, wNum);
+  tm.appendChild(h('div',{className:'inline-detail-label'},`🏃 Apple Fitness+ Treadmill · ${P.meta.treadmillMinutes} min`));
+  tm.appendChild(h('div',{className:'inline-detail-title'},tr.style, h('span',{className:`tr-int ${tr.intensity}`},tr.intensity)));
+  tm.appendChild(h('div',{className:'inline-detail-note',style:{fontStyle:'normal'}},tr.note));
+  tm.appendChild(h('div',{className:'inline-detail-note'},P.treadmillNote));
   detail.appendChild(tm);
 
   // Next week's plan, computed live from what was logged today
@@ -546,15 +583,25 @@ function renderNextPlan(box, wk, day, units) {
   const sess = getSession(day.key) || {};
   box.appendChild(h('div',{className:'inline-detail-label'},`📅 Next ${def.name} day · ${isLastWeek ? 'next cycle, week 1' : 'week '+nextW} · ${nextBlock.name}`));
   const rows = [];
-  def.exercises.forEach(ex => {
-    const todays = sess.sets && hasLog(sess.sets[ex.id]) ? { cycle:store.settings.cycle, week:wNum, sets:sess.sets[ex.id].filter(x=>x&&(x.w!=null||x.r!=null)) } : lastLog(day.kind, ex.id, store.settings.cycle, wNum);
-    if(!todays) return;
-    const sg = suggestNext(ex, todays, isLastWeek ? 1 : nextW);
+  const targetW = isLastWeek ? 1 : nextW;
+  const nextExs = exercisesFor(day.kind, targetW, null);
+  const todayExs = exercisesFor(day.kind, wNum, sess);
+  let anyLogged = false;
+  nextExs.forEach((ex, i) => {
+    // history for that exact variant: today's sets if it's the same lift, else its own last log (maybe a previous cycle)
+    const sameToday = todayExs[i] && todayExs[i].id === ex.id;
+    const todays = sameToday && sess.sets && hasLog(sess.sets[ex.id])
+      ? { cycle:store.settings.cycle, week:wNum, sets:sess.sets[ex.id].filter(x=>x&&(x.w!=null||x.r!=null)) }
+      : lastLog(day.kind, ex.id, store.settings.cycle + (isLastWeek?1:0), targetW);
+    if(todays) anyLogged = true;
+    const sg = suggestNext(ex, todays, targetW);
+    const changed = todayExs[i] && todayExs[i].id !== ex.id;
     rows.push(h('div',{className:'mini-row'},
-      h('span',{className:'mini-name'},h('span',{className:`sg-dot ${sg.kind}`}),ex.name),
-      h('span',{className:`mini-dur sg-${sg.kind}`},fmtSuggest(sg, units)),
+      h('span',{className:'mini-name'},h('span',{className:`sg-dot ${sg.kind}`}),ex.name, changed ? h('span',{className:'ex-tag new'},'NEW') : null),
+      h('span',{className:`mini-dur sg-${sg.kind}`}, sg.kind==='new' ? 'find weight' : fmtSuggest(sg, units)),
     ));
   });
+  if(!anyLogged) rows.length = 0;
   if(!rows.length) {
     box.appendChild(h('div',{className:'mini-note'},'Log your weights and reps above and next week\'s targets appear here as you type.'));
   } else {
@@ -638,7 +685,7 @@ function renderLifts(units) {
   box.appendChild(h('div',{className:'zones-title'},'Your lifts'));
   let any = false;
   ["push","legs","pull"].forEach(kind => {
-    P.days[kind].exercises.forEach(ex => {
+    allExercisesFor(kind).forEach(ex => {
       const logs = exerciseLogs(kind, ex.id);
       if(!logs.length) return;
       any = true;
@@ -648,7 +695,7 @@ function renderLifts(units) {
       const delta = (fw!=null && lw!=null) ? lw-fw : null;
       const bestR = latest.sets.map(s=>s.r).filter(x=>x!=null);
       box.appendChild(h('div',{className:'lift-row'},
-        h('div',{className:'lift-name'},h('span',{className:'lift-dot',style:{background:P.days[kind].color}}),ex.name),
+        h('div',{className:'lift-name'},h('span',{className:'lift-dot',style:{background:P.days[kind].color}}),ex.name, ex.anchor ? h('span',{className:'ex-tag anchor'},'★') : null),
         h('div',{className:'lift-now'},lw!=null?`${lw} ${units}`:'—', bestR.length?h('span',{className:'lift-reps'},` × ${Math.max(...bestR)}`):null),
         h('div',{className:`lift-delta${delta>0?' up':''}`}, delta==null||logs.length<2 ? `${logs.length} log${logs.length===1?'':'s'}` : delta>0?`+${delta} ${units}`:delta<0?`${delta} ${units}`:'same'),
       ));

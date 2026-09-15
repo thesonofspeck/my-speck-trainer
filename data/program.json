@@ -10,28 +10,100 @@
   },
   "blocks": [
     {
-      "id": 1, "name": "Foundation", "weeks": [1, 2, 3, 4], "color": "#2D6A4F",
-      "sets": [2, 2, 3, 3], "reps": "12-15", "rpe": "6-7", "rest": "60s",
+      "id": 1,
+      "name": "Foundation",
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "color": "#2D6A4F",
+      "sets": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "reps": "12-15",
+      "rpe": "6-7",
+      "rest": "60s",
       "focus": "Learn the movements and find your starting weights. Everything light and smooth — you should finish every set feeling like you had 3-4 more reps in you."
     },
     {
-      "id": 2, "name": "Build", "weeks": [5, 6, 7, 8], "color": "#D4A017",
-      "sets": [3, 3, 3, 3], "reps": "10-12", "rpe": "7-8", "rest": "60-75s",
+      "id": 2,
+      "name": "Build",
+      "weeks": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "color": "#D4A017",
+      "sets": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "reps": "10-12",
+      "rpe": "7-8",
+      "rest": "60-75s",
       "focus": "Moderate weights, tight form. Add reps first, then take the smallest weight step up. Two reps in the tank on every set."
     },
     {
-      "id": 3, "name": "Strong", "weeks": [9, 10, 11, 12], "color": "#C1121F",
-      "sets": [3, 3, 3, 2], "reps": "8-12", "rpe": "7-8", "rest": "75-90s",
+      "id": 3,
+      "name": "Strong",
+      "weeks": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "color": "#C1121F",
+      "sets": [
+        3,
+        3,
+        3,
+        2
+      ],
+      "reps": "8-12",
+      "rpe": "7-8",
+      "rest": "75-90s",
       "focus": "A touch heavier, never a grind. If a weight forces you to brace hard or hold your breath, it is too heavy — drop back and own the reps. Week 12 is lighter: 2 sets, enjoy it, then start the next cycle."
     }
   ],
   "warmup": [
-    { "name": "Easy treadmill walk", "dur": "2:00", "note": "Get blood moving before you touch a weight" },
-    { "name": "Cat-cow", "dur": "×8", "note": "Gentle, only in a pain-free range" },
-    { "name": "Bird dog", "dur": "×6 / side", "note": "Slow, hips level, don't arch" },
-    { "name": "Glute bridge", "dur": "×10", "note": "Squeeze at the top, ribs down" },
-    { "name": "Arm circles + band pull-aparts", "dur": "×15", "note": "Open up the shoulders" },
-    { "name": "First exercise, feather-light", "dur": "1 set", "note": "Half the weight, full reps, groove the pattern" }
+    {
+      "name": "Easy treadmill walk",
+      "dur": "2:00",
+      "note": "Get blood moving before you touch a weight"
+    },
+    {
+      "name": "Cat-cow",
+      "dur": "×8",
+      "note": "Gentle, only in a pain-free range"
+    },
+    {
+      "name": "Bird dog",
+      "dur": "×6 / side",
+      "note": "Slow, hips level, don't arch"
+    },
+    {
+      "name": "Glute bridge",
+      "dur": "×10",
+      "note": "Squeeze at the top, ribs down"
+    },
+    {
+      "name": "Arm circles + band pull-aparts",
+      "dur": "×15",
+      "note": "Open up the shoulders"
+    },
+    {
+      "name": "First exercise, feather-light",
+      "dur": "1 set",
+      "note": "Half the weight, full reps, groove the pattern"
+    }
   ],
   "days": {
     "push": {
@@ -40,17 +112,252 @@
       "color": "#E63946",
       "muscles": "Chest · Shoulders · Triceps",
       "exercises": [
-        { "id": "db_bench", "name": "Dumbbell Bench Press", "equip": "DB", "cue": "Feet flat, shoulder blades tucked, only your natural arch. Lower to chest level under control.", "alt": "Incline Dumbbell Press (30°)" },
-        { "id": "db_seated_press", "name": "Seated Dumbbell Shoulder Press", "equip": "DB", "cue": "Back pad upright, neutral grip, ribs down. Press without arching the low back.", "alt": "Incline Dumbbell Press (45°)", "spine": "Keep this light. Overhead work loads the spine — the back pad does the bracing for you." },
-        { "id": "cable_fly", "name": "Cable Chest Fly", "equip": "Cable", "cue": "Slight elbow bend, squeeze hands together at the middle, torso perfectly still.", "alt": "Standing Cable Chest Press" },
-        { "id": "db_lateral", "name": "Dumbbell Lateral Raise", "equip": "DB", "reps": "12-15", "cue": "Light. Lead with the elbows, stop at shoulder height, no swinging.", "alt": "Cable Lateral Raise" },
-        { "id": "cable_pushdown", "name": "Cable Triceps Pushdown", "equip": "Cable", "reps": "12-15", "cue": "Rope or bar, elbows pinned to your sides, full lockout, stand tall.", "alt": "Dumbbell Skull Crusher (on bench)" }
+        {
+          "slot": "push_press",
+          "variants": [
+            {
+              "id": "db_bench",
+              "name": "Dumbbell Bench Press",
+              "equip": "DB",
+              "cue": "Feet flat, shoulder blades tucked, only your natural arch. Lower to chest level under control.",
+              "alt": {
+                "id": "db_incline_30",
+                "name": "Incline Dumbbell Press (30°)",
+                "equip": "DB",
+                "cue": "Low incline, same tucked shoulder blades. Press up and slightly back."
+              }
+            }
+          ],
+          "anchor": true
+        },
+        {
+          "slot": "push_overhead",
+          "variants": [
+            {
+              "id": "db_seated_press",
+              "name": "Seated Dumbbell Shoulder Press",
+              "equip": "DB",
+              "cue": "Back pad upright, neutral grip, ribs down. Press without arching the low back.",
+              "spine": "Keep this light. Overhead work loads the spine — the back pad does the bracing for you.",
+              "alt": {
+                "id": "db_incline_45",
+                "name": "Incline Dumbbell Press (45°)",
+                "equip": "DB",
+                "cue": "High incline hits the front delts with the bench doing the bracing."
+              }
+            },
+            {
+              "id": "db_arnold",
+              "name": "Seated Arnold Press",
+              "equip": "DB",
+              "cue": "Light. Start palms facing you, rotate out as you press. Back stays on the pad the whole time.",
+              "spine": "Lighter than a normal press — the rotation is the work, not the load.",
+              "alt": {
+                "id": "db_seated_press",
+                "name": "Seated Dumbbell Shoulder Press",
+                "equip": "DB",
+                "cue": "Back pad upright, neutral grip, ribs down."
+              }
+            },
+            {
+              "id": "db_single_press",
+              "name": "Seated Single-Arm Dumbbell Press",
+              "equip": "DB",
+              "cue": "One arm at a time, free hand holds the bench. Don't let your torso lean away — that's the core work.",
+              "perSide": true,
+              "spine": "Unilateral so the load is half, and your core resists the side-bend.",
+              "alt": {
+                "id": "db_seated_press",
+                "name": "Seated Dumbbell Shoulder Press",
+                "equip": "DB",
+                "cue": "Back pad upright, neutral grip, ribs down."
+              }
+            }
+          ]
+        },
+        {
+          "slot": "push_chest2",
+          "variants": [
+            {
+              "id": "cable_fly",
+              "name": "Cable Chest Fly",
+              "equip": "Cable",
+              "cue": "Slight elbow bend, squeeze hands together at the middle, torso perfectly still.",
+              "alt": {
+                "id": "cable_press",
+                "name": "Standing Cable Chest Press",
+                "equip": "Cable",
+                "cue": "Split stance, press forward, don't lean."
+              }
+            },
+            {
+              "id": "cable_press",
+              "name": "Standing Cable Chest Press",
+              "equip": "Cable",
+              "cue": "Split stance, cables at chest height, press forward and squeeze. Torso tall, no leaning into it.",
+              "alt": {
+                "id": "cable_fly",
+                "name": "Cable Chest Fly",
+                "equip": "Cable",
+                "cue": "Slight elbow bend, squeeze at the middle."
+              }
+            },
+            {
+              "id": "cable_fly_low",
+              "name": "Low-to-High Cable Fly",
+              "equip": "Cable",
+              "cue": "Cables at the bottom, sweep up and in to eye level. Upper chest. Stay tall.",
+              "alt": {
+                "id": "cable_fly",
+                "name": "Cable Chest Fly",
+                "equip": "Cable",
+                "cue": "Slight elbow bend, squeeze at the middle."
+              }
+            }
+          ]
+        },
+        {
+          "slot": "push_lateral",
+          "variants": [
+            {
+              "id": "db_lateral",
+              "name": "Dumbbell Lateral Raise",
+              "equip": "DB",
+              "cue": "Light. Lead with the elbows, stop at shoulder height, no swinging.",
+              "reps": "12-15",
+              "alt": {
+                "id": "cable_lateral",
+                "name": "Cable Lateral Raise",
+                "equip": "Cable",
+                "cue": "Cable behind you, raise to shoulder height.",
+                "reps": "12-15",
+                "perSide": true
+              }
+            },
+            {
+              "id": "cable_lateral",
+              "name": "Cable Lateral Raise",
+              "equip": "Cable",
+              "cue": "Cable low, behind your body. Raise to shoulder height, pause, lower slow. Constant tension.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "db_lateral",
+                "name": "Dumbbell Lateral Raise",
+                "equip": "DB",
+                "cue": "Light, lead with the elbows.",
+                "reps": "12-15"
+              }
+            },
+            {
+              "id": "db_lateral_seated",
+              "name": "Seated Dumbbell Lateral Raise",
+              "equip": "DB",
+              "cue": "Sitting removes the cheat. Strict, slow, stop at shoulder height.",
+              "reps": "12-15",
+              "alt": {
+                "id": "db_lateral",
+                "name": "Dumbbell Lateral Raise",
+                "equip": "DB",
+                "cue": "Light, lead with the elbows.",
+                "reps": "12-15"
+              }
+            }
+          ]
+        },
+        {
+          "slot": "push_triceps",
+          "variants": [
+            {
+              "id": "cable_pushdown",
+              "name": "Cable Triceps Pushdown",
+              "equip": "Cable",
+              "cue": "Rope or bar, elbows pinned to your sides, full lockout, stand tall.",
+              "reps": "12-15",
+              "alt": {
+                "id": "db_skull",
+                "name": "Dumbbell Skull Crusher (on bench)",
+                "equip": "DB",
+                "cue": "Lying on the bench, lower to the forehead, elbows still.",
+                "reps": "12-15"
+              }
+            },
+            {
+              "id": "db_skull",
+              "name": "Dumbbell Skull Crusher (on bench)",
+              "equip": "DB",
+              "cue": "Lying on the bench, lower to either side of your head, elbows pointing up the whole time.",
+              "reps": "12-15",
+              "alt": {
+                "id": "cable_pushdown",
+                "name": "Cable Triceps Pushdown",
+                "equip": "Cable",
+                "cue": "Elbows pinned, full lockout.",
+                "reps": "12-15"
+              }
+            },
+            {
+              "id": "cable_pushdown_1arm",
+              "name": "Single-Arm Cable Pushdown",
+              "equip": "Cable",
+              "cue": "One arm, palm down or neutral, elbow pinned. Even reps both sides.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "cable_pushdown",
+                "name": "Cable Triceps Pushdown",
+                "equip": "Cable",
+                "cue": "Elbows pinned, full lockout.",
+                "reps": "12-15"
+              }
+            }
+          ]
+        }
       ],
       "core": [
-        { "id": "dead_bug", "name": "Dead Bug", "target": "2 × 8 / side", "cue": "Low back pressed into the floor the whole time. Slow." },
-        { "id": "pallof", "name": "Cable Pallof Press", "target": "2 × 10 / side", "cue": "Cable at chest height, press out and hold 2s. Resist the twist." }
-      ],
-      "treadmill": { "name": "Apple Fitness+ Treadmill", "dur": "20 min", "style": "Walk + Run", "note": "Pick any 20-minute Treadmill workout. Mostly easy-to-moderate effort (Z2-Z3) — you just lifted." }
+        [
+          {
+            "id": "dead_bug",
+            "name": "Dead Bug",
+            "target": "2 × 8 / side",
+            "cue": "Low back pressed into the floor the whole time. Slow."
+          },
+          {
+            "id": "pallof",
+            "name": "Cable Pallof Press",
+            "target": "2 × 10 / side",
+            "cue": "Cable at chest height, press out and hold 2s. Resist the twist."
+          }
+        ],
+        [
+          {
+            "id": "plank",
+            "name": "Front Plank",
+            "target": "2 × 30-40s",
+            "cue": "Squeeze glutes, ribs down, breathe. Stop before your hips sag."
+          },
+          {
+            "id": "pallof_kneel",
+            "name": "Half-Kneeling Pallof Press",
+            "target": "2 × 10 / side",
+            "cue": "Inside knee down, press out and hold. Harder to cheat than standing."
+          }
+        ],
+        [
+          {
+            "id": "dead_bug",
+            "name": "Dead Bug",
+            "target": "2 × 8 / side",
+            "cue": "Low back pressed into the floor the whole time. Slow."
+          },
+          {
+            "id": "cable_chop",
+            "name": "Cable Chop (high to low)",
+            "target": "2 × 8 / side",
+            "cue": "Light. Half-kneeling, arms long, chop across your body with the hips still. Core only — no twisting the low back."
+          }
+        ]
+      ]
     },
     "legs": {
       "name": "Legs",
@@ -58,17 +365,261 @@
       "color": "#40916C",
       "muscles": "Quads · Glutes · Hamstrings · Calves",
       "exercises": [
-        { "id": "goblet", "name": "Goblet Squat", "equip": "DB", "cue": "Dumbbell held at the chest keeps your torso tall. Sit between your hips, only as deep as feels good. Box behind you is fine.", "alt": "Dumbbell Box Squat" },
-        { "id": "db_reverse_lunge", "name": "Dumbbell Reverse Lunge", "equip": "DB", "perSide": true, "cue": "Step back, front shin vertical, chest tall. Hold the rack if you need balance.", "alt": "Dumbbell Step-Up (bench)" },
-        { "id": "db_rdl", "name": "Dumbbell Romanian Deadlift", "equip": "DB", "cue": "LIGHT. Soft knees, hinge at the hips, dumbbells slide down your thighs. Stop the moment your hamstrings tug — never let your back round.", "alt": "Dumbbell Hip Thrust (shoulders on bench)", "spine": "The one hinge in the plan. If your back says anything at all, swap to the hip thrust — same muscles, spine supported." },
-        { "id": "cable_kickback", "name": "Cable Glute Kickback", "equip": "Cable", "perSide": true, "reps": "12-15", "cue": "Ankle strap, hold the frame, kick back with the glute — no arching to cheat range.", "alt": "Cable Hip Abduction" },
-        { "id": "db_calf", "name": "Dumbbell Standing Calf Raise", "equip": "DB", "reps": "15-20", "cue": "Toes on a plate or step, full stretch at the bottom, pause at the top.", "alt": "Seated Calf Raise (dumbbells on knees)" }
+        {
+          "slot": "legs_squat",
+          "variants": [
+            {
+              "id": "goblet",
+              "name": "Goblet Squat",
+              "equip": "DB",
+              "cue": "Dumbbell held at the chest keeps your torso tall. Sit between your hips, only as deep as feels good. Box behind you is fine.",
+              "alt": {
+                "id": "db_box_squat",
+                "name": "Dumbbell Box Squat",
+                "equip": "DB",
+                "cue": "Sit back to the box, tap, stand. Same tall torso."
+              }
+            }
+          ],
+          "anchor": true
+        },
+        {
+          "slot": "legs_unilateral",
+          "variants": [
+            {
+              "id": "db_reverse_lunge",
+              "name": "Dumbbell Reverse Lunge",
+              "equip": "DB",
+              "cue": "Step back, front shin vertical, chest tall. Hold the rack if you need balance.",
+              "perSide": true,
+              "alt": {
+                "id": "db_stepup",
+                "name": "Dumbbell Step-Up (bench)",
+                "equip": "DB",
+                "cue": "Whole foot on the bench, drive through the heel, control the way down.",
+                "perSide": true
+              }
+            },
+            {
+              "id": "db_stepup",
+              "name": "Dumbbell Step-Up (bench)",
+              "equip": "DB",
+              "cue": "Whole foot on the bench, drive through the heel, don't push off the back leg. Control the way down.",
+              "perSide": true,
+              "alt": {
+                "id": "db_reverse_lunge",
+                "name": "Dumbbell Reverse Lunge",
+                "equip": "DB",
+                "cue": "Step back, front shin vertical, chest tall.",
+                "perSide": true
+              }
+            },
+            {
+              "id": "db_split_squat",
+              "name": "Dumbbell Split Squat",
+              "equip": "DB",
+              "cue": "Feet stay planted in a long stance, drop straight down, back knee toward the floor. Torso tall.",
+              "perSide": true,
+              "alt": {
+                "id": "db_reverse_lunge",
+                "name": "Dumbbell Reverse Lunge",
+                "equip": "DB",
+                "cue": "Step back, front shin vertical, chest tall.",
+                "perSide": true
+              }
+            }
+          ]
+        },
+        {
+          "slot": "legs_hinge",
+          "variants": [
+            {
+              "id": "db_rdl",
+              "name": "Dumbbell Romanian Deadlift",
+              "equip": "DB",
+              "cue": "LIGHT. Soft knees, hinge at the hips, dumbbells slide down your thighs. Stop the moment your hamstrings tug — never let your back round.",
+              "spine": "The one hinge in the plan. If your back says anything at all, swap to the hip thrust — same muscles, spine supported.",
+              "alt": {
+                "id": "db_hip_thrust",
+                "name": "Dumbbell Hip Thrust (shoulders on bench)",
+                "equip": "DB",
+                "cue": "Dumbbell on the hips, chin tucked, squeeze glutes to a flat line at the top — don't hyperextend."
+              }
+            },
+            {
+              "id": "db_hip_thrust",
+              "name": "Dumbbell Hip Thrust (shoulders on bench)",
+              "equip": "DB",
+              "cue": "Shoulders on the bench, dumbbell on your hips, chin tucked. Squeeze glutes to a flat line at the top — never arch past it.",
+              "spine": "Zero spinal load. This is the glute exercise for a stenotic back.",
+              "alt": {
+                "id": "db_glute_bridge",
+                "name": "Dumbbell Glute Bridge (floor)",
+                "equip": "DB",
+                "cue": "Same movement from the floor, shorter range, still squeeze."
+              }
+            },
+            {
+              "id": "db_rdl",
+              "name": "Dumbbell Romanian Deadlift",
+              "equip": "DB",
+              "cue": "LIGHT. Hinge at the hips, dumbbells slide down your thighs, stop when the hamstrings tug. Never round.",
+              "spine": "Back for block 3 with more practice under your belt. Same rule: any back talk, swap to the hip thrust.",
+              "alt": {
+                "id": "db_hip_thrust",
+                "name": "Dumbbell Hip Thrust (shoulders on bench)",
+                "equip": "DB",
+                "cue": "Dumbbell on the hips, chin tucked, squeeze to flat."
+              }
+            }
+          ]
+        },
+        {
+          "slot": "legs_glute",
+          "variants": [
+            {
+              "id": "cable_kickback",
+              "name": "Cable Glute Kickback",
+              "equip": "Cable",
+              "cue": "Ankle strap, hold the frame, kick back with the glute — no arching to cheat range.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "cable_abduction",
+                "name": "Cable Hip Abduction",
+                "equip": "Cable",
+                "cue": "Ankle strap, leg out to the side, stay tall.",
+                "reps": "12-15",
+                "perSide": true
+              }
+            },
+            {
+              "id": "cable_abduction",
+              "name": "Cable Hip Abduction",
+              "equip": "Cable",
+              "cue": "Ankle strap, stand side-on, lift the leg out to the side. Tall torso, no leaning away.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "cable_kickback",
+                "name": "Cable Glute Kickback",
+                "equip": "Cable",
+                "cue": "Kick back with the glute, no arching.",
+                "reps": "12-15",
+                "perSide": true
+              }
+            },
+            {
+              "id": "cable_kickback",
+              "name": "Cable Glute Kickback",
+              "equip": "Cable",
+              "cue": "Ankle strap, hold the frame, kick back with the glute — no arching to cheat range.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "cable_abduction",
+                "name": "Cable Hip Abduction",
+                "equip": "Cable",
+                "cue": "Leg out to the side, stay tall.",
+                "reps": "12-15",
+                "perSide": true
+              }
+            }
+          ]
+        },
+        {
+          "slot": "legs_calf",
+          "variants": [
+            {
+              "id": "db_calf",
+              "name": "Dumbbell Standing Calf Raise",
+              "equip": "DB",
+              "cue": "Toes on a plate or step, full stretch at the bottom, pause at the top.",
+              "reps": "15-20",
+              "alt": {
+                "id": "db_calf_seated",
+                "name": "Seated Calf Raise (dumbbells on knees)",
+                "equip": "DB",
+                "cue": "Dumbbells on the knees, toes on a plate, full range.",
+                "reps": "15-20"
+              }
+            },
+            {
+              "id": "db_calf_seated",
+              "name": "Seated Calf Raise (dumbbells on knees)",
+              "equip": "DB",
+              "cue": "Dumbbells on your knees, toes on a plate. Full stretch, full squeeze — different calf muscle than standing.",
+              "reps": "15-20",
+              "alt": {
+                "id": "db_calf",
+                "name": "Dumbbell Standing Calf Raise",
+                "equip": "DB",
+                "cue": "Toes on a plate, full stretch, pause at the top.",
+                "reps": "15-20"
+              }
+            },
+            {
+              "id": "db_calf_single",
+              "name": "Single-Leg Dumbbell Calf Raise",
+              "equip": "DB",
+              "cue": "One dumbbell, other hand on the rack. Slow, full range, no bouncing.",
+              "reps": "12-15",
+              "perSide": true,
+              "alt": {
+                "id": "db_calf",
+                "name": "Dumbbell Standing Calf Raise",
+                "equip": "DB",
+                "cue": "Toes on a plate, full stretch, pause at the top.",
+                "reps": "15-20"
+              }
+            }
+          ]
+        }
       ],
       "core": [
-        { "id": "side_plank", "name": "Side Plank", "target": "2 × 20-30s / side", "cue": "From knees if needed. Hips stacked and lifted, straight line." },
-        { "id": "bird_dog", "name": "Bird Dog", "target": "2 × 8 / side", "cue": "Reach long, hold 2s, hips stay level. The best spine exercise there is." }
-      ],
-      "treadmill": { "name": "Apple Fitness+ Treadmill", "dur": "20 min", "style": "Incline Walk", "note": "Legs are already worked — choose a walking / hiking-style Treadmill session. Incline up, impact down." }
+        [
+          {
+            "id": "side_plank",
+            "name": "Side Plank",
+            "target": "2 × 20-30s / side",
+            "cue": "From knees if needed. Hips stacked and lifted, straight line."
+          },
+          {
+            "id": "bird_dog",
+            "name": "Bird Dog",
+            "target": "2 × 8 / side",
+            "cue": "Reach long, hold 2s, hips stay level. The best spine exercise there is."
+          }
+        ],
+        [
+          {
+            "id": "suitcase_carry",
+            "name": "Suitcase Carry",
+            "target": "2 × 30s / side",
+            "cue": "One light-moderate dumbbell, walk tall and don't lean. Anti-side-bend for the spine."
+          },
+          {
+            "id": "bird_dog",
+            "name": "Bird Dog",
+            "target": "2 × 8 / side",
+            "cue": "Reach long, hold 2s, hips stay level. The best spine exercise there is."
+          }
+        ],
+        [
+          {
+            "id": "side_plank",
+            "name": "Side Plank",
+            "target": "2 × 20-30s / side",
+            "cue": "From knees if needed. Hips stacked and lifted, straight line."
+          },
+          {
+            "id": "dead_bug",
+            "name": "Dead Bug",
+            "target": "2 × 8 / side",
+            "cue": "Low back pressed into the floor the whole time. Slow."
+          }
+        ]
+      ]
     },
     "pull": {
       "name": "Pull",
@@ -76,17 +627,250 @@
       "color": "#3A86FF",
       "muscles": "Back · Rear Shoulders · Biceps",
       "exercises": [
-        { "id": "lat_pulldown", "name": "Lat Pulldown", "equip": "Cable", "cue": "Chest tall, pull the elbows down to your ribs, small lean only. Control the way up.", "alt": "Cable Straight-Arm Pulldown" },
-        { "id": "cable_row", "name": "Seated Cable Row", "equip": "Cable", "cue": "Tall spine, pull to your belly button, shoulders back. No rocking your torso.", "alt": "Single-Arm Cable Row" },
-        { "id": "db_cs_row", "name": "Chest-Supported Dumbbell Row", "equip": "DB", "cue": "Incline bench at 30-45°, chest on the pad so your spine is fully supported. Row to your hips.", "alt": "Single-Arm Dumbbell Row (hand on bench)" },
-        { "id": "face_pull", "name": "Cable Face Pull", "equip": "Cable", "reps": "12-15", "cue": "Rope at face height, pull toward your forehead with elbows high. Posture gold.", "alt": "Dumbbell Rear-Delt Fly (chest-supported)" },
-        { "id": "db_hammer", "name": "Dumbbell Hammer Curl", "equip": "DB", "reps": "10-12", "cue": "Elbows still, no swinging, squeeze at the top.", "alt": "Cable Curl" }
+        {
+          "slot": "pull_vertical",
+          "variants": [
+            {
+              "id": "lat_pulldown",
+              "name": "Lat Pulldown",
+              "equip": "Cable",
+              "cue": "Chest tall, pull the elbows down to your ribs, small lean only. Control the way up.",
+              "alt": {
+                "id": "cable_straight_arm",
+                "name": "Cable Straight-Arm Pulldown",
+                "equip": "Cable",
+                "cue": "Arms nearly straight, sweep the bar to your thighs, stay tall."
+              }
+            },
+            {
+              "id": "lat_pulldown_neutral",
+              "name": "Neutral-Grip Lat Pulldown",
+              "equip": "Cable",
+              "cue": "Palms facing each other, pull to the upper chest, elbows to the ribs. Easier on the shoulders.",
+              "alt": {
+                "id": "lat_pulldown",
+                "name": "Lat Pulldown",
+                "equip": "Cable",
+                "cue": "Chest tall, elbows to the ribs."
+              }
+            },
+            {
+              "id": "lat_pulldown_1arm",
+              "name": "Single-Arm Cable Pulldown",
+              "equip": "Cable",
+              "cue": "Half-kneeling or seated, one arm, pull the elbow to the hip. Don't twist to help.",
+              "perSide": true,
+              "alt": {
+                "id": "lat_pulldown",
+                "name": "Lat Pulldown",
+                "equip": "Cable",
+                "cue": "Chest tall, elbows to the ribs."
+              }
+            }
+          ]
+        },
+        {
+          "slot": "pull_row",
+          "variants": [
+            {
+              "id": "cable_row",
+              "name": "Seated Cable Row",
+              "equip": "Cable",
+              "cue": "Tall spine, pull to your belly button, shoulders back. No rocking your torso.",
+              "alt": {
+                "id": "cable_row_1arm",
+                "name": "Single-Arm Cable Row",
+                "equip": "Cable",
+                "cue": "One arm, other hand braced on the machine, no twisting.",
+                "perSide": true
+              }
+            }
+          ],
+          "anchor": true
+        },
+        {
+          "slot": "pull_dbrow",
+          "variants": [
+            {
+              "id": "db_cs_row",
+              "name": "Chest-Supported Dumbbell Row",
+              "equip": "DB",
+              "cue": "Incline bench at 30-45°, chest on the pad so your spine is fully supported. Row to your hips.",
+              "alt": {
+                "id": "db_row_1arm",
+                "name": "Single-Arm Dumbbell Row (hand on bench)",
+                "equip": "DB",
+                "cue": "Hand and knee on the bench, flat back, row to the hip.",
+                "perSide": true
+              }
+            },
+            {
+              "id": "db_row_1arm",
+              "name": "Single-Arm Dumbbell Row (hand on bench)",
+              "equip": "DB",
+              "cue": "Hand and knee on the bench, back flat as a table. Row to your hip, no torso twist.",
+              "perSide": true,
+              "spine": "Bench takes the load off your spine. If it doesn't feel supported, go back to chest-supported.",
+              "alt": {
+                "id": "db_cs_row",
+                "name": "Chest-Supported Dumbbell Row",
+                "equip": "DB",
+                "cue": "Chest on the incline pad, row to the hips."
+              }
+            },
+            {
+              "id": "db_cs_row_wide",
+              "name": "Chest-Supported Row, Elbows Out",
+              "equip": "DB",
+              "cue": "Same incline bench, but elbows flare to 60-70° and you row to your chest. Upper back and rear delts.",
+              "alt": {
+                "id": "db_cs_row",
+                "name": "Chest-Supported Dumbbell Row",
+                "equip": "DB",
+                "cue": "Chest on the incline pad, row to the hips."
+              }
+            }
+          ]
+        },
+        {
+          "slot": "pull_reardelt",
+          "variants": [
+            {
+              "id": "face_pull",
+              "name": "Cable Face Pull",
+              "equip": "Cable",
+              "cue": "Rope at face height, pull toward your forehead with elbows high. Posture gold.",
+              "reps": "12-15",
+              "alt": {
+                "id": "db_rear_fly",
+                "name": "Dumbbell Rear-Delt Fly (chest-supported)",
+                "equip": "DB",
+                "cue": "Chest on the incline pad, light dumbbells, sweep out wide.",
+                "reps": "12-15"
+              }
+            },
+            {
+              "id": "db_rear_fly",
+              "name": "Dumbbell Rear-Delt Fly (chest-supported)",
+              "equip": "DB",
+              "cue": "Chest on the incline pad, light dumbbells, sweep out and back with a soft elbow. Pause at the top.",
+              "reps": "12-15",
+              "alt": {
+                "id": "face_pull",
+                "name": "Cable Face Pull",
+                "equip": "Cable",
+                "cue": "Rope to the forehead, elbows high.",
+                "reps": "12-15"
+              }
+            },
+            {
+              "id": "cable_reverse_fly",
+              "name": "Cable Reverse Fly",
+              "equip": "Cable",
+              "cue": "Cross the cables, arms out wide like opening a door. Light — this is a small muscle.",
+              "reps": "12-15",
+              "alt": {
+                "id": "face_pull",
+                "name": "Cable Face Pull",
+                "equip": "Cable",
+                "cue": "Rope to the forehead, elbows high.",
+                "reps": "12-15"
+              }
+            }
+          ]
+        },
+        {
+          "slot": "pull_biceps",
+          "variants": [
+            {
+              "id": "db_hammer",
+              "name": "Dumbbell Hammer Curl",
+              "equip": "DB",
+              "cue": "Elbows still, no swinging, squeeze at the top.",
+              "reps": "10-12",
+              "alt": {
+                "id": "cable_curl",
+                "name": "Cable Curl",
+                "equip": "Cable",
+                "cue": "Bar or rope, elbows pinned, constant tension.",
+                "reps": "10-12"
+              }
+            },
+            {
+              "id": "cable_curl",
+              "name": "Cable Curl",
+              "equip": "Cable",
+              "cue": "Bar or rope, elbows pinned, constant tension all the way. No body English.",
+              "reps": "10-12",
+              "alt": {
+                "id": "db_hammer",
+                "name": "Dumbbell Hammer Curl",
+                "equip": "DB",
+                "cue": "Elbows still, squeeze at the top.",
+                "reps": "10-12"
+              }
+            },
+            {
+              "id": "db_incline_curl",
+              "name": "Incline Dumbbell Curl",
+              "equip": "DB",
+              "cue": "Seated on the incline bench, arms hanging back. Long stretch, curl without the shoulders moving.",
+              "reps": "10-12",
+              "alt": {
+                "id": "db_hammer",
+                "name": "Dumbbell Hammer Curl",
+                "equip": "DB",
+                "cue": "Elbows still, squeeze at the top.",
+                "reps": "10-12"
+              }
+            }
+          ]
+        }
       ],
       "core": [
-        { "id": "plank", "name": "Front Plank", "target": "2 × 30-40s", "cue": "Squeeze glutes, ribs down, breathe. Stop before your hips sag." },
-        { "id": "suitcase_carry", "name": "Suitcase Carry", "target": "2 × 30s / side", "cue": "One light-moderate dumbbell, walk tall and don't lean. Anti-side-bend for the spine." }
-      ],
-      "treadmill": { "name": "Apple Fitness+ Treadmill", "dur": "20 min", "style": "Run Intervals", "note": "Your one harder cardio of the week. A Treadmill workout with run pushes; hit Z3-Z4 on the pushes, walk the recoveries." }
+        [
+          {
+            "id": "plank",
+            "name": "Front Plank",
+            "target": "2 × 30-40s",
+            "cue": "Squeeze glutes, ribs down, breathe. Stop before your hips sag."
+          },
+          {
+            "id": "suitcase_carry",
+            "name": "Suitcase Carry",
+            "target": "2 × 30s / side",
+            "cue": "One light-moderate dumbbell, walk tall and don't lean. Anti-side-bend for the spine."
+          }
+        ],
+        [
+          {
+            "id": "side_plank",
+            "name": "Side Plank",
+            "target": "2 × 20-30s / side",
+            "cue": "From knees if needed. Hips stacked and lifted, straight line."
+          },
+          {
+            "id": "pallof",
+            "name": "Cable Pallof Press",
+            "target": "2 × 10 / side",
+            "cue": "Cable at chest height, press out and hold 2s. Resist the twist."
+          }
+        ],
+        [
+          {
+            "id": "farmer_carry",
+            "name": "Farmer Carry",
+            "target": "2 × 40s",
+            "cue": "Two light-moderate dumbbells, tall posture, small quick steps. Grip and core together."
+          },
+          {
+            "id": "plank_taps",
+            "name": "Plank with Shoulder Taps",
+            "target": "2 × 20 taps",
+            "cue": "Wide feet, tap the opposite shoulder without the hips rocking."
+          }
+        ]
+      ]
     },
     "cardio": {
       "name": "Home Cardio + Core",
@@ -94,14 +878,47 @@
       "color": "#F77F00",
       "muscles": "Heart · Lungs · Core",
       "options": [
-        { "id": "hiit", "name": "Apple Fitness+ HIIT", "dur": "20 min", "note": "Choose the low-impact modifier when it's offered. No burpees you don't want to do." },
-        { "id": "cycling", "name": "Apple Fitness+ Cycling", "dur": "20-30 min", "note": "Easiest on the spine. Bike or spin bike at home." },
-        { "id": "rowing", "name": "Apple Fitness+ Rowing", "dur": "20 min", "note": "Only if you row with a tall neutral back — skip if it bugs you." },
-        { "id": "dance", "name": "Apple Fitness+ Dance or Kickboxing", "dur": "20-30 min", "note": "Fun beats optimal. Full-body, gets the heart rate up." },
-        { "id": "outdoor", "name": "Outdoor Walk / Run", "dur": "30 min", "note": "Time to Walk or Time to Run. Fresh air counts." }
+        {
+          "id": "hiit",
+          "name": "Apple Fitness+ HIIT",
+          "dur": "20 min",
+          "note": "Choose the low-impact modifier when it's offered. No burpees you don't want to do."
+        },
+        {
+          "id": "cycling",
+          "name": "Apple Fitness+ Cycling",
+          "dur": "20-30 min",
+          "note": "Easiest on the spine. Bike or spin bike at home."
+        },
+        {
+          "id": "rowing",
+          "name": "Apple Fitness+ Rowing",
+          "dur": "20 min",
+          "note": "Only if you row with a tall neutral back — skip if it bugs you."
+        },
+        {
+          "id": "dance",
+          "name": "Apple Fitness+ Dance or Kickboxing",
+          "dur": "20-30 min",
+          "note": "Fun beats optimal. Full-body, gets the heart rate up."
+        },
+        {
+          "id": "outdoor",
+          "name": "Outdoor Walk / Run",
+          "dur": "30 min",
+          "note": "Time to Walk or Time to Run. Fresh air counts."
+        }
       ],
-      "core": { "name": "Apple Fitness+ Core", "dur": "10 min", "note": "Do this right after the cardio. Modify: skip sit-ups, V-ups, Russian twists and weighted crunches — swap in dead bugs, planks or bird dogs for those sections." },
-      "cooldown": { "name": "Apple Fitness+ Mindful Cooldown or Yoga", "dur": "10 min", "note": "Optional. Skip deep backbends; hips and hamstrings are the priority." }
+      "core": {
+        "name": "Apple Fitness+ Core",
+        "dur": "10 min",
+        "note": "Do this right after the cardio. Modify: skip sit-ups, V-ups, Russian twists and weighted crunches — swap in dead bugs, planks or bird dogs for those sections."
+      },
+      "cooldown": {
+        "name": "Apple Fitness+ Mindful Cooldown or Yoga",
+        "dur": "10 min",
+        "note": "Optional. Skip deep backbends; hips and hamstrings are the priority."
+      }
     },
     "rest": {
       "name": "Rest / Walk",
@@ -111,7 +928,9 @@
     }
   },
   "progression": {
-    "dbStepLb": 5, "dbStepKg": 2.5, "cableStep": "1 plate",
+    "dbStepLb": 5,
+    "dbStepKg": 2.5,
+    "cableStep": "1 plate",
     "rules": [
       "Double progression: pick a weight, work up to the top of the rep range on every set, then take the smallest step up and start again at the bottom of the range.",
       "Reps first, weight second. Adding a rep at the same weight is progress.",
@@ -128,8 +947,68 @@
     "Sharp pain, numbness or tingling down a leg means stop that exercise for the day and swap to the alternative. Check in with your doctor or PT if it repeats."
   ],
   "hrZones": [
-    { "z": "Z2", "r": "130-145", "d": "Easy — most treadmill time", "c": "#40916C" },
-    { "z": "Z3", "r": "155-165", "d": "Moderate — comfortably hard", "c": "#F77F00" },
-    { "z": "Z4", "r": "165-175", "d": "Hard — run intervals only", "c": "#E63946" }
-  ]
+    {
+      "z": "Z2",
+      "r": "130-145",
+      "d": "Easy — most treadmill time",
+      "c": "#40916C"
+    },
+    {
+      "z": "Z3",
+      "r": "155-165",
+      "d": "Moderate — comfortably hard",
+      "c": "#F77F00"
+    },
+    {
+      "z": "Z4",
+      "r": "165-175",
+      "d": "Hard — run intervals only",
+      "c": "#E63946"
+    }
+  ],
+  "treadmill": [
+    {
+      "id": "walkrun",
+      "style": "Walk + Run",
+      "intensity": "easy",
+      "note": "Any 20-min Treadmill session that alternates walking and running. Mostly Z2, a little Z3."
+    },
+    {
+      "id": "incline",
+      "style": "Incline Walk",
+      "intensity": "easy",
+      "note": "Hiking-style: incline up, speed down. Zero impact, big heart rate. Great when legs are heavy."
+    },
+    {
+      "id": "intervals",
+      "style": "Run Intervals",
+      "intensity": "hard",
+      "note": "Run pushes at Z3-Z4, walk the recoveries. The one that makes you fitter fastest."
+    },
+    {
+      "id": "steady",
+      "style": "Steady Run",
+      "intensity": "moderate",
+      "note": "A continuous easy run at a pace you could talk through. Z2-Z3 the whole way."
+    },
+    {
+      "id": "powerwalk",
+      "style": "Power Walk",
+      "intensity": "easy",
+      "note": "Brisk walk with incline changes. Swing the arms, stay tall. Perfect recovery cardio."
+    },
+    {
+      "id": "pyramid",
+      "style": "Pyramid Intervals",
+      "intensity": "hard",
+      "note": "Pushes that get longer then shorter (1-2-3-2-1 min). Z3 building to Z4 at the peak."
+    },
+    {
+      "id": "hills",
+      "style": "Rolling Hills",
+      "intensity": "moderate",
+      "note": "Jogging with incline intervals. Legs and lungs together — Z3 on the climbs."
+    }
+  ],
+  "treadmillNote": "Legs feeling cooked? Trade today's session for the Incline Walk — the rotation just picks up next time."
 }
