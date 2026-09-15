@@ -66,7 +66,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .num, .set-in, .mini-dur, .ex-target, .ex-line, .prog-text, .toprow-prog, .lift-val, .stat-num, .rest-timer-text, .dp-n, .card-date { font-variant-numeric: tabular-nums; }
 
 /* ---------- large title ---------- */
-.lt { padding: calc(var(--safe-top) + 14px) 16px 6px; }
+.lt { padding: calc(var(--safe-top) + 14px) 16px 8px; }
 .lt-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .lt-title { font-size: 34px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.1; }
 .lt-sub { font-size: 15px; color: var(--label-2); margin-top: 4px; }
@@ -74,11 +74,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .icon-btn:active { transform: scale(0.92); }
 
 /* ---------- sections & cards ---------- */
-.sec { margin-top: 24px; padding: 0 16px; }
-.sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+.sec { margin-top: 28px; padding: 0 16px; }
+.sec > * + * { margin-top: 12px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 2px; }
 .sec-title { font-size: 20px; font-weight: 700; letter-spacing: -0.2px; }
 .card { background: var(--bg-2); border-radius: var(--r-l); padding: 16px; }
-.card + .card, .session .card { margin-top: 12px; }
+.session .card { margin-top: 12px; }
 .card-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .card-date { font-size: 14px; color: var(--label-2); }
 .card-text { font-size: 15px; color: var(--label-2); line-height: 1.5; margin-top: 8px; }
@@ -131,7 +132,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .prog-text { font-size: 13px; color: var(--label-2); }
 
 /* ---------- week strip ---------- */
-.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .dp { background: var(--bg-2); border-radius: 14px; padding: 10px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 76px; transition: transform 0.12s; }
 .dp:active { transform: scale(0.95); }
 .dp-d { font-size: 11px; font-weight: 700; color: var(--label-3); letter-spacing: 0.4px; }
@@ -156,7 +157,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .rules { list-style: none; padding: 4px 16px 14px 44px; counter-reset: r; }
 .rules li { font-size: 14px; color: var(--label-2); line-height: 1.5; padding: 6px 0; position: relative; }
 .rules li::before { counter-increment: r; content: counter(r); position: absolute; left: -24px; top: 7px; font-size: 12px; font-weight: 700; color: var(--label-3); }
-.banner { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-m); display: flex; flex-direction: column; gap: 8px; }
+.banner { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-m); display: flex; flex-direction: column; gap: 8px; }
 .banner-text { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
 .banner-actions { display: flex; align-items: center; gap: 12px; }
 
@@ -210,7 +211,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .tl-seg:active { transform: scale(0.97); }
 .tl-name { font-size: 14px; font-weight: 700; }
 .tl-weeks { font-size: 11px; opacity: 0.85; font-weight: 600; }
-.wk-chips { display: flex; gap: 6px; overflow-x: auto; padding: 14px 16px 0; scrollbar-width: none; }
+.wk-chips { display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px 0; scrollbar-width: none; }
 .wk-chips::-webkit-scrollbar { display: none; }
 .wk-chip { flex: 0 0 auto; min-width: 40px; height: 40px; border-radius: 12px; background: var(--bg-2); color: var(--label-2); font-size: 15px; font-weight: 600; }
 .wk-chip.active { color: var(--on-tone); }
