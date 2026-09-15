@@ -373,6 +373,78 @@ body {
 .chip:disabled { opacity: 0.25; }
 .date-in { background: rgba(128,128,128,0.15); border: none; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 14px; padding: 10px 12px; border-radius: 10px; outline: none; color-scheme: dark; }
 
+
+/* ===== Gym-floor UX ===== */
+body { padding-bottom: calc(var(--safe-bottom) + 76px); }
+body.in-session { padding-bottom: calc(var(--safe-bottom) + 24px); }
+html.timer-on { scroll-padding-bottom: 110px; }
+html.timer-on body { padding-bottom: calc(var(--safe-bottom) + 110px); }
+
+/* Today card */
+.today { padding: 16px 20px 0; }
+.today-box { background: var(--card); border-radius: 18px; padding: 18px; }
+.today-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+.today-title { font-size: 26px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px; }
+.today-icon { font-size: 20px; }
+.today-sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.45; }
+.today-prog { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.today-prog-bar { flex: 1; height: 5px; background: rgba(128,128,128,0.2); border-radius: 2.5px; overflow: hidden; }
+.today-prog-fill { height: 100%; border-radius: 2.5px; }
+.today-prog-text { font-size: 12px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+.start-btn { width: 100%; margin-top: 14px; border: none; color: #fff; font-family: inherit; font-size: 17px; font-weight: 800; padding: 16px; border-radius: 14px; cursor: pointer; }
+.start-btn:active { transform: scale(0.98); }
+.start-btn.done { background: rgba(52,199,89,0.15); color: var(--green); }
+.start-btn.ghost { background: rgba(128,128,128,0.15); color: var(--text); font-size: 14px; font-weight: 600; padding: 13px; }
+
+/* Tab bar */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 480px; display: flex; background: rgba(28,28,30,0.85); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: 0.5px solid rgba(255,255,255,0.1); padding: 8px 0 calc(var(--safe-bottom) + 8px); z-index: 150; }
+.tab { flex: 1; background: transparent; border: none; color: var(--text-faint); font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px 0; }
+.tab-icon { font-size: 20px; }
+.tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+.tab.active { color: var(--text); }
+
+/* Session screen */
+.session-head { padding-bottom: 12px; }
+.back-btn { background: transparent; border: none; color: var(--blue); font-family: inherit; font-size: 15px; font-weight: 600; padding: 0 0 6px; cursor: pointer; }
+.session-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.session-head h1 { font-size: 24px; }
+.timer-start { width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--card); font-size: 18px; cursor: pointer; flex-shrink: 0; }
+.timer-start:active { transform: scale(0.92); }
+.session-body { padding: 14px 20px 0; }
+.session-toprow { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 4px; }
+.session-prog { font-size: 12px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+.text-btn { background: transparent; border: none; color: var(--blue); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 0; }
+.session-body .inline-detail { margin-top: 12px; }
+.inline-detail-label.fold { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 0; }
+.inline-detail-label.fold + .mini-row, .inline-detail-label.fold + .inline-detail-title { margin-top: 8px; }
+.inline-detail.checked { opacity: 0.6; }
+.fold-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); font-weight: 600; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid rgba(128,128,128,0.2); cursor: pointer; }
+.week-header-box.compact .week-header-top { margin-bottom: 2px; }
+.week-header-box.compact .week-rx { margin-top: 8px; }
+
+/* Compact exercise cards */
+.session-body .exercise { margin-top: 12px; padding: 12px 14px; transition: opacity 0.2s; }
+.exercise.all-done { opacity: 0.55; }
+.ex-top { cursor: pointer; align-items: center; }
+.ex-meta { flex-direction: row; align-items: center; gap: 8px; }
+.ex-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; flex-wrap: wrap; }
+.ex-line-last { color: var(--text-faint); }
+.ex-line-arrow { color: var(--text-faint); }
+.ex-line-now { font-weight: 700; color: var(--text); font-size: 13px; }
+.ex-line.up .ex-line-now { color: var(--green); }
+.ex-line.down .ex-line-now { color: var(--orange); }
+.ex-line.new .ex-line-now { color: var(--text-dim); font-weight: 500; }
+.ex-details { margin-top: 8px; padding: 10px 12px; background: rgba(128,128,128,0.1); border-radius: 10px; }
+.ex-details .ex-cue { margin-top: 0; }
+.ex-details .ex-hint-text { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+.set-row.done .set-in { color: var(--text-faint); }
+.set-row.done .set-n { color: var(--green); }
+.set-check { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--text-faint); background: transparent; color: transparent; font-size: 15px; font-weight: 700; cursor: pointer; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.set-check.done { border-color: var(--green); background: var(--green); color: #fff; }
+.set-check:active { transform: scale(0.88); }
+.set-in { width: 58px; }
+.set-x { width: 26px; }
+
 @media (prefers-color-scheme: light) {
   :root {
     --bg: #f2f2f7;
@@ -399,5 +471,7 @@ body {
   .day-card { border-bottom-color: rgba(0,0,0,0.08); }
   .streak-cell { background: rgba(0,0,0,0.05); }
   .date-in { color-scheme: light; }
+  .tabbar { background: rgba(242,242,247,0.85); border-top-color: rgba(0,0,0,0.1); }
+  .timer-start { background: #fff; }
   .timer-btn { background: rgba(0,0,0,0.06); }
 }
