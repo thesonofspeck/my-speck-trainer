@@ -1,5 +1,5 @@
 /* MySpeckTrainer service worker — offline-first for the gym basement */
-const CACHE = 'speck-strength-v1';
+const CACHE = 'speck-strength-v2';
 const ASSETS = ['./', './index.html', './css/style.css', './js/app.js', './data/program.json', './manifest.json', './icons/icon.svg'];
 
 self.addEventListener('install', e => {

@@ -18,7 +18,6 @@
         3,
         4
       ],
-      "color": "#2D6A4F",
       "sets": [
         2,
         2,
@@ -28,7 +27,8 @@
       "reps": "12-15",
       "rpe": "6-7",
       "rest": "60s",
-      "focus": "Learn the movements and find your starting weights. Everything light and smooth — you should finish every set feeling like you had 3-4 more reps in you."
+      "focus": "Learn the movements and find your starting weights. Everything light and smooth — you should finish every set feeling like you had 3-4 more reps in you.",
+      "tone": "sage"
     },
     {
       "id": 2,
@@ -39,7 +39,6 @@
         7,
         8
       ],
-      "color": "#D4A017",
       "sets": [
         3,
         3,
@@ -49,7 +48,8 @@
       "reps": "10-12",
       "rpe": "7-8",
       "rest": "60-75s",
-      "focus": "Moderate weights, tight form. Add reps first, then take the smallest weight step up. Two reps in the tank on every set."
+      "focus": "Moderate weights, tight form. Add reps first, then take the smallest weight step up. Two reps in the tank on every set.",
+      "tone": "gold"
     },
     {
       "id": 3,
@@ -60,7 +60,6 @@
         11,
         12
       ],
-      "color": "#C1121F",
       "sets": [
         3,
         3,
@@ -70,7 +69,8 @@
       "reps": "8-12",
       "rpe": "7-8",
       "rest": "75-90s",
-      "focus": "A touch heavier, never a grind. If a weight forces you to brace hard or hold your breath, it is too heavy — drop back and own the reps. Week 12 is lighter: 2 sets, enjoy it, then start the next cycle."
+      "focus": "A touch heavier, never a grind. If a weight forces you to brace hard or hold your breath, it is too heavy — drop back and own the reps. Week 12 is lighter: 2 sets, enjoy it, then start the next cycle.",
+      "tone": "rose"
     }
   ],
   "warmup": [
@@ -108,8 +108,6 @@
   "days": {
     "push": {
       "name": "Push",
-      "icon": "🔴",
-      "color": "#E63946",
       "muscles": "Chest · Shoulders · Triceps",
       "exercises": [
         {
@@ -357,12 +355,11 @@
             "cue": "Light. Half-kneeling, arms long, chop across your body with the hips still. Core only — no twisting the low back."
           }
         ]
-      ]
+      ],
+      "tone": "rose"
     },
     "legs": {
       "name": "Legs",
-      "icon": "🟢",
-      "color": "#40916C",
       "muscles": "Quads · Glutes · Hamstrings · Calves",
       "exercises": [
         {
@@ -619,12 +616,11 @@
             "cue": "Low back pressed into the floor the whole time. Slow."
           }
         ]
-      ]
+      ],
+      "tone": "sage"
     },
     "pull": {
       "name": "Pull",
-      "icon": "🔵",
-      "color": "#3A86FF",
       "muscles": "Back · Rear Shoulders · Biceps",
       "exercises": [
         {
@@ -870,13 +866,12 @@
             "cue": "Wide feet, tap the opposite shoulder without the hips rocking."
           }
         ]
-      ]
+      ],
+      "tone": "sky"
     },
     "cardio": {
-      "name": "Home Cardio + Core",
-      "icon": "🟠",
-      "color": "#F77F00",
-      "muscles": "Heart · Lungs · Core",
+      "name": "Home Cardio",
+      "muscles": "Cardio + Core at home",
       "options": [
         {
           "id": "hiit",
@@ -918,13 +913,13 @@
         "name": "Apple Fitness+ Mindful Cooldown or Yoga",
         "dur": "10 min",
         "note": "Optional. Skip deep backbends; hips and hamstrings are the priority."
-      }
+      },
+      "tone": "apricot"
     },
     "rest": {
-      "name": "Rest / Walk",
-      "icon": "⚪",
-      "color": "#8e8e93",
-      "note": "20-30 min easy walk if you can. Optional 10-min Apple Fitness+ Yoga or Mindful Cooldown. Lean happens with daily movement, not just gym days."
+      "name": "Rest",
+      "note": "20-30 min easy walk if you can. Optional 10-min Apple Fitness+ Yoga or Mindful Cooldown. Lean happens with daily movement, not just gym days.",
+      "tone": "gray"
     }
   },
   "progression": {
@@ -951,19 +946,19 @@
       "z": "Z2",
       "r": "130-145",
       "d": "Easy — most treadmill time",
-      "c": "#40916C"
+      "tone": "sage"
     },
     {
       "z": "Z3",
       "r": "155-165",
       "d": "Moderate — comfortably hard",
-      "c": "#F77F00"
+      "tone": "apricot"
     },
     {
       "z": "Z4",
       "r": "165-175",
       "d": "Hard — run intervals only",
-      "c": "#E63946"
+      "tone": "rose"
     }
   ],
   "treadmill": [

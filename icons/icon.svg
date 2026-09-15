@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="108" fill="#000"/>
-  <text x="256" y="196" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="150" fill="#fff">S</text>
-  <rect x="96" y="300" width="36" height="120" rx="10" fill="#E63946"/>
-  <rect x="140" y="320" width="26" height="80" rx="8" fill="#E63946"/>
-  <rect x="166" y="348" width="180" height="24" rx="12" fill="#8e8e93"/>
-  <rect x="346" y="320" width="26" height="80" rx="8" fill="#3A86FF"/>
-  <rect x="380" y="300" width="36" height="120" rx="10" fill="#3A86FF"/>
+  <rect width="512" height="512" rx="112" fill="#1C1C1E"/>
+  <text x="256" y="204" text-anchor="middle" font-family="-apple-system, system-ui, sans-serif" font-weight="800" font-size="150" fill="#F5F5F7">S</text>
+  <rect x="96" y="300" width="36" height="120" rx="10" fill="#E58C82"/>
+  <rect x="140" y="320" width="26" height="80" rx="8" fill="#E58C82"/>
+  <rect x="166" y="348" width="180" height="24" rx="12" fill="#8E8E93"/>
+  <rect x="346" y="320" width="26" height="80" rx="8" fill="#86A9E6"/>
+  <rect x="380" y="300" width="36" height="120" rx="10" fill="#86A9E6"/>
 </svg>
